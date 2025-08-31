@@ -1,0 +1,10 @@
+TODO:
+Add background idling (when you close gd and return after 8 hours, it's like you afked for 8 hours)
+Make the icons require 5 mana orbs when it's been a while (you can only give 1 mana orb at a time with a 15-20 sec cooldown for icons requiring mana orbs), then if they are still growing, make them require stars, and if they are already fully grown make them require either moons or diamonds. There will be 5 maturity levels.
+When you feed them something, there is a 90% chance they emit a bronze coin (+10 money), 9% chance they emit a silver coin (+100 money), and a 1% chance they emit a gold coin (+1000 money)
+You will be able to buy new 3 icons every 24 hours ($1000 each) and you wont be able to see the color/type of the icon.
+There will also be the ability to sell an icon for the following: 750 + (200 * maturity level) and the ability to move icons.
+
+LATER UPDATES:
+Add the ability to convert your PVZ Zen Garden to a GD Zen Garden and vice versa (i can do that one, i know the file formats)
+Add Zen Garden money to your profile (not others)
