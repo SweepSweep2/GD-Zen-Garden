@@ -1,0 +1,19 @@
+{
+	"geode": "4.7.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"resources": {
+		"sprites": [
+			"resources/*.png"
+		]
+	},
+	"id": "sweep.zen-garden",
+	"name": "zen-garden",
+	"version": "v1.0.0",
+	"developer": "Sweep",
+	"description": "A mod that adds the PVZ Zen Garden."
+}
