@@ -1,6 +1,5 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
-#include <Geode/ui/LazySprite.hpp>
 #include "ZenGardenLayer.hpp"
 
 using namespace geode::prelude;
@@ -27,10 +26,10 @@ class $modify(ZenGardenMenuLayer, MenuLayer) {
 		marigoldSprite->loadFromFile(Mod::get()->getResourcesDir() / "Marigold.png");
 
 		auto openZenGarden = CCMenuItemSpriteExtra::create(
-			geode::CircleButtonSprite::create(
+			CircleButtonSprite::create(
 				marigoldSprite,
-				geode::CircleBaseColor::Green,
-				geode::CircleBaseSize::Medium
+				CircleBaseColor::Green,
+				CircleBaseSize::Medium
 			),
 			this,
 			menu_selector(ZenGardenMenuLayer::onZenGarden)
@@ -47,9 +46,9 @@ class $modify(ZenGardenMenuLayer, MenuLayer) {
 	}
 
 	void onZenGarden(CCObject*) {
-		auto scene = cocos2d::CCScene::create();
+		auto scene = CCScene::create();
 		scene->addChild(ZenGardenLayer::create());
 
-		CCDirector::sharedDirector()->pushScene(scene);
+		CCDirector::get()->pushScene(CCTransitionFade::create(.5f, scene));
 	}
 };
