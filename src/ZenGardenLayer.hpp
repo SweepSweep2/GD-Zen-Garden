@@ -57,7 +57,7 @@ public:
     // Maturity system variables
     int m_maturityLevel = 0; // 0-5, with 5 being fully mature
     int m_orbsFeeded = 0; // Track orbs fed to the player
-    float m_lastOrbFeedTime = 0.0f; // When the player was last fed an orb
+    int64_t m_lastOrbFeedTime = 0; // When the player was last fed an orb (stored as system time in seconds)
     CCSprite *m_requirementSprite = nullptr; // Visual indicator for what food the player needs
     CCLabelBMFont *m_requirementLabel = nullptr; // Label for orbs progress (X/5)
 };

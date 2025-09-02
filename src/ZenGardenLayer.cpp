@@ -162,7 +162,7 @@ bool ZenGardenLayer::init()
     // Initialize maturity system variables
     ZenGardenLayer::m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
     ZenGardenLayer::m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed", 0);
-    ZenGardenLayer::m_lastOrbFeedTime = Mod::get()->getSavedValue<float>("player_last_orb_feed", 0.0f);
+    ZenGardenLayer::m_lastOrbFeedTime = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed", 0);
 
     // Seed random number generator
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -397,21 +397,21 @@ bool ZenGardenLayer::init()
     // Create reset progress button at the bottom left of the screen using ButtonSprite
     auto resetButtonMenu = CCMenu::create();
     resetButtonMenu->setID("reset-button-menu");
-    
+
     // Use ButtonSprite to create the reset button with better visual styling
     auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
-    
+
     auto resetButton = CCMenuItemSpriteExtra::create(
         resetButtonSprite,
         this,
         menu_selector(ZenGardenLayer::onResetProgress));
-    
+
     resetButton->setID("reset-progress-button");
     resetButtonMenu->addChild(resetButton);
-    
+
     // Position at the bottom left corner
     resetButtonMenu->setPosition(ccp(55, 25));
-    
+
     this->addChild(resetButtonMenu);
 
     return true;
@@ -433,11 +433,12 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
                 m_orbsFeeded++;
                 Mod::get()->setSavedValue<int>("player_orbs_fed", m_orbsFeeded);
 
-                // Update last feed time
+                // Update last feed time using system time in seconds
                 auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
-                    std::chrono::system_clock::now().time_since_epoch()).count();
-                m_lastOrbFeedTime = static_cast<float>(currentTime);
-                Mod::get()->setSavedValue<float>("player_last_orb_feed", m_lastOrbFeedTime);
+                                       std::chrono::system_clock::now().time_since_epoch())
+                                       .count();
+                m_lastOrbFeedTime = currentTime;
+                Mod::get()->setSavedValue<int64_t>("player_last_orb_feed", m_lastOrbFeedTime);
 
                 // Check if we've reached 5 orbs to level up
                 if (m_orbsFeeded >= 5)
@@ -465,7 +466,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             else
             {
                 log::debug("Not Enough Stars");
-                Notification::create("Not Enough Stars");
+                Notification::create("Not Enough Stars", NotificationIcon::Warning, 0.5f)->show();
             }
         }
         else if (m_maturityLevel == 2 && ZenGardenLayer::m_selectedItem == 3)
@@ -481,7 +482,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             else
             {
                 log::debug("Not Enough Moons");
-                Notification::create("Not Enough Moons");
+                Notification::create("Not Enough Moons", NotificationIcon::Warning, 0.5f)->show();
             }
         }
         else if (m_maturityLevel >= 3 && m_maturityLevel < 5 && ZenGardenLayer::m_selectedItem == 4)
@@ -496,7 +497,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             }
             else
             {
-                Notification::create("Not Enough Diamonds");
+                Notification::create("Not Enough Diamonds", NotificationIcon::Warning, 0.5f)->show();
             }
         }
         else
@@ -525,7 +526,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             }
 
             log::debug("Wrong Food: {}", message);
-            Notification::create("Wrong Food: " + message);
+            Notification::create("Wrong Food: " + message, NotificationIcon::Warning, 0.5f)->show();
         }
 
         // If feed was valid, check for coin rewards
@@ -882,30 +883,34 @@ bool ZenGardenLayer::canFeedOrb()
 {
     // system time
     auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    
-    float timeSinceLastFeed = static_cast<float>(currentTime - m_lastOrbFeedTime);
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count();
+
+    int64_t timeSinceLastFeed = currentTime - m_lastOrbFeedTime;
+
+    log::debug("Time since last feed: {} seconds", timeSinceLastFeed);
 
     // 15-20 second cooldown (use 17.5 seconds)
-    return timeSinceLastFeed >= 17.5f;
+    return timeSinceLastFeed >= 17;
 }
 
 void ZenGardenLayer::displayOrbCooldownMessage()
 {
     // accurate seconds calculation
     auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    
-    float timeSinceLastFeed = static_cast<float>(currentTime - m_lastOrbFeedTime);
-    float remainingTime = 17.5f - timeSinceLastFeed;
-    
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count();
+
+    int64_t timeSinceLastFeed = currentTime - m_lastOrbFeedTime;
+    int64_t remainingTime = 17 - timeSinceLastFeed;
+
     // don't show negative time
-    int secondsRemaining = static_cast<int>(ceilf(remainingTime > 0 ? remainingTime : 0));
-    
-    std::string message = "Please wait " + std::to_string(secondsRemaining) + " seconds before feeding another orb.";
+    int secondsRemaining = static_cast<int>(remainingTime > 0 ? remainingTime : 0);
+
+    std::string message = "Please wait " + std::to_string(secondsRemaining) + " seconds.";
 
     log::debug("Feeding Cooldown: {}", message);
-    Notification::create("Feeding Cooldown: " + message);
+    Notification::create("Feeding Cooldown: " + message, NotificationIcon::Loading, 0.5f)->show();
 }
 
 void ZenGardenLayer::update(float dt)
@@ -941,19 +946,20 @@ void ZenGardenLayer::update(float dt)
     }
 }
 
-void ZenGardenLayer::onResetProgress(CCObject* sender)
+void ZenGardenLayer::onResetProgress(CCObject *sender)
 {
     // Show confirmation dialog using Geode's createQuickPopup
     geode::createQuickPopup(
         "Reset Progress",
         "Are you sure you want to reset ALL progress?\n\nThis will reset your maturity level, resources, and all player stats to default values.\n\nThis action cannot be undone!",
         "Cancel", "Reset",
-        [this](auto, bool btn2) {
-            if (btn2) {
+        [this](auto, bool btn2)
+        {
+            if (btn2)
+            {
                 this->confirmResetProgress();
             }
-        }
-    );
+        });
 }
 
 void ZenGardenLayer::confirmResetProgress()
@@ -966,28 +972,29 @@ void ZenGardenLayer::confirmResetProgress()
     Mod::get()->setSavedValue<int>("moons", 3);
     Mod::get()->setSavedValue<int>("diamonds", 4);
     Mod::get()->setSavedValue<int>("money", 1000);
-    
+
     // Update in-memory values
     m_maturityLevel = 0;
     m_orbsFeeded = 0;
-    m_lastOrbFeedTime = 0.0f;
+    m_lastOrbFeedTime = 0;
     m_starCount = 2;
     m_moonCount = 3;
     m_diamondCount = 4;
     m_money = 1000;
-    
+
     // Update player scale based on new maturity level
-    if (m_simplePlayer) {
+    if (m_simplePlayer)
+    {
         m_simplePlayer->setScale(0.5f); // Base scale for baby player
     }
-    
+
     // Update visuals
     displayRequirementSprite();
-    
+
     // Show confirmation message
     FLAlertLayer::create(
         "Progress Reset",
         "Your progress has been reset to default values!",
-        "OK"
-    )->show();
+        "OK")
+        ->show();
 }
