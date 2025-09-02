@@ -1,6 +1,7 @@
 #include "ZenGardenLayer.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
+#include <Geode/ui/Notification.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
@@ -62,6 +63,9 @@ ZenGardenLayer *ZenGardenLayer::create()
 void ZenGardenLayer::onBack(CCObject *sender)
 {
     Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
+    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
+    Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
+    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
     CCDirector::sharedDirector()->popScene();
 }
 
@@ -89,7 +93,7 @@ void ZenGardenLayer::onFeedOrbs(CCObject *sender)
 
 void ZenGardenLayer::onFeedStars(CCObject *sender)
 {
-    if (ZenGardenLayer::m_selectedItem != 2)
+    if (ZenGardenLayer::m_selectedItem != 2 && ZenGardenLayer::m_starCount > 0)
     {
         ZenGardenLayer::m_selectedItem = 2;
         ZenGardenLayer::m_starsHoverSprite->setVisible(true);
@@ -106,7 +110,7 @@ void ZenGardenLayer::onFeedStars(CCObject *sender)
 
 void ZenGardenLayer::onFeedMoons(CCObject *sender)
 {
-    if (ZenGardenLayer::m_selectedItem != 3)
+    if (ZenGardenLayer::m_selectedItem != 3 && ZenGardenLayer::m_moonCount > 0)
     {
         ZenGardenLayer::m_selectedItem = 3;
         ZenGardenLayer::m_moonsHoverSprite->setVisible(true);
@@ -123,7 +127,7 @@ void ZenGardenLayer::onFeedMoons(CCObject *sender)
 
 void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
 {
-    if (ZenGardenLayer::m_selectedItem != 4)
+    if (ZenGardenLayer::m_selectedItem != 4 && ZenGardenLayer::m_diamondCount > 0)
     {
         ZenGardenLayer::m_selectedItem = 4;
         ZenGardenLayer::m_diamondsHoverSprite->setVisible(true);
@@ -151,20 +155,21 @@ bool ZenGardenLayer::init()
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
 
     ZenGardenLayer::m_starCount = Mod::get()->getSavedValue<int>("stars");
+    ZenGardenLayer::m_moonCount = Mod::get()->getSavedValue<int>("moons", 3);
+    ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds", 4);
     ZenGardenLayer::m_money = Mod::get()->getSavedValue<int>("money", 1000);
+
+    // Initialize maturity system variables
+    ZenGardenLayer::m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
+    ZenGardenLayer::m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed", 0);
+    ZenGardenLayer::m_lastOrbFeedTime = Mod::get()->getSavedValue<float>("player_last_orb_feed", 0.0f);
 
     // Seed random number generator
     srand(static_cast<unsigned int>(time(nullptr)));
 
-    auto background = CCSprite::create("GJ_gradientBG.png");
-    background->setScaleX(windowSize.width / background->getContentSize().width);
-    background->setScaleY(windowSize.height / background->getContentSize().height);
-    background->setPosition(ccp(284.5f, 160.0f));
-    background->setID("background");
-    background->setZOrder(-5);
-    background->setColor({0, 102, 255});
+    auto background = createLayerBG();
 
-    this->addChild(background);
+    this->addChild(background, -5);
 
     auto exitMenu = CCMenu::create();
     exitMenu->setID("exit-menu");
@@ -359,7 +364,11 @@ bool ZenGardenLayer::init()
         int firstBoxX = (windowSize.width / 2) + xPositions[0]; // -190 offset
         int firstBoxY = (windowSize.height / 2) + 75;           // Top row
 
-        ZenGardenLayer::m_simplePlayer->setScale(0.8f);
+        // Set scale based on maturity level (0.5 for baby, growing to 0.8 at max level)
+        float playerScale = 0.5f + (ZenGardenLayer::m_maturityLevel * 0.06f);
+        playerScale = std::min(playerScale, 0.8f); // Cap at 0.8f
+
+        ZenGardenLayer::m_simplePlayer->setScale(playerScale);
         ZenGardenLayer::m_simplePlayer->setID("simple-player-1");
         ZenGardenLayer::m_simplePlayer->setZOrder(-1);
 
@@ -380,7 +389,30 @@ bool ZenGardenLayer::init()
         simplePlayerMenu->setID("simple-player-menu");
 
         this->addChild(simplePlayerMenu);
+
+        // Add requirement indicator
+        displayRequirementSprite();
     }
+
+    // Create reset progress button at the bottom left of the screen using ButtonSprite
+    auto resetButtonMenu = CCMenu::create();
+    resetButtonMenu->setID("reset-button-menu");
+    
+    // Use ButtonSprite to create the reset button with better visual styling
+    auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
+    
+    auto resetButton = CCMenuItemSpriteExtra::create(
+        resetButtonSprite,
+        this,
+        menu_selector(ZenGardenLayer::onResetProgress));
+    
+    resetButton->setID("reset-progress-button");
+    resetButtonMenu->addChild(resetButton);
+    
+    // Position at the bottom left corner
+    resetButtonMenu->setPosition(ccp(55, 25));
+    
+    this->addChild(resetButtonMenu);
 
     return true;
 }
@@ -390,71 +422,141 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
     // Check if any item is selected (m_selectedItem != 0)
     if (ZenGardenLayer::m_selectedItem != 0)
     {
+        bool validFeed = false;
 
-        // Handle different types of feeding based on selected item
-        switch (ZenGardenLayer::m_selectedItem)
+        // Handle feeding based on maturity level and selected item
+        if (m_maturityLevel < 1 && ZenGardenLayer::m_selectedItem == 1)
         {
-        case 1: // Orbs
-        {
-            // Generate random number between 1-100
-            int randomChance = rand() % 100 + 1;
-
-            // 90% chance to get a coin reward
-            if (randomChance <= 90)
+            // Baby needs orbs, check for cooldown
+            if (canFeedOrb())
             {
-                showCoinReward();
+                m_orbsFeeded++;
+                Mod::get()->setSavedValue<int>("player_orbs_fed", m_orbsFeeded);
 
-                // Award $10 to the user
-                ZenGardenLayer::m_money += 10;
+                // Update last feed time
+                auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count();
+                m_lastOrbFeedTime = static_cast<float>(currentTime);
+                Mod::get()->setSavedValue<float>("player_last_orb_feed", m_lastOrbFeedTime);
 
-                // Save the money value and flash money label green
-                Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-                flashMoneyGreen();
+                // Check if we've reached 5 orbs to level up
+                if (m_orbsFeeded >= 5)
+                {
+                    handlePlayerGrowth();
+                }
+
+                validFeed = true;
             }
-            break;
+            else
+            {
+                displayOrbCooldownMessage();
+            }
         }
-        case 2: // Stars selected
+        else if (m_maturityLevel == 1 && ZenGardenLayer::m_selectedItem == 2)
         {
-            // TODO: Implement star feeding logic
-            // For now, just provide a small coin reward
-            showCoinReward();
-            ZenGardenLayer::m_money += 5;
-            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-            flashMoneyGreen();
-            break;
+            // Young player needs stars
+            if (ZenGardenLayer::m_starCount > 0)
+            {
+                ZenGardenLayer::m_starCount -= 1;
+                Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
+                handlePlayerGrowth();
+                validFeed = true;
+            }
+            else
+            {
+                log::debug("Not Enough Stars");
+                Notification::create("Not Enough Stars");
+            }
         }
-        case 3: // Moons selected
+        else if (m_maturityLevel == 2 && ZenGardenLayer::m_selectedItem == 3)
         {
-            // TODO: Implement moon feeding logic
-            // For now, just provide a medium coin reward
-            showCoinReward();
-            ZenGardenLayer::m_money += 15;
-            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-            flashMoneyGreen();
-            break;
+            // Teen player needs moons
+            if (ZenGardenLayer::m_moonCount > 0)
+            {
+                ZenGardenLayer::m_moonCount -= 1;
+                Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
+                handlePlayerGrowth();
+                validFeed = true;
+            }
+            else
+            {
+                log::debug("Not Enough Moons");
+                Notification::create("Not Enough Moons");
+            }
         }
-        case 4: // Diamonds selected
+        else if (m_maturityLevel >= 3 && m_maturityLevel < 5 && ZenGardenLayer::m_selectedItem == 4)
         {
-            // TODO: Implement diamond feeding logic
-            // For now, just provide a large coin reward
-            showCoinReward();
-            ZenGardenLayer::m_money += 25;
-            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-            flashMoneyGreen();
-            break;
+            // Adult and elder players need diamonds
+            if (ZenGardenLayer::m_diamondCount > 0)
+            {
+                ZenGardenLayer::m_diamondCount -= 1;
+                Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
+                handlePlayerGrowth();
+                validFeed = true;
+            }
+            else
+            {
+                Notification::create("Not Enough Diamonds");
+            }
         }
+        else
+        {
+            // Wrong food for current maturity level
+            std::string message;
+            if (m_maturityLevel < 1)
+            {
+                message = "Your baby player needs orbs to grow.";
+            }
+            else if (m_maturityLevel == 1)
+            {
+                message = "Your young player needs stars to grow.";
+            }
+            else if (m_maturityLevel == 2)
+            {
+                message = "Your teenage player needs moons to grow.";
+            }
+            else if (m_maturityLevel < 5)
+            {
+                message = "Your adult player needs diamonds to grow.";
+            }
+            else
+            {
+                message = "Your player is fully mature and doesn't need to eat.";
+            }
+
+            log::debug("Wrong Food: {}", message);
+            Notification::create("Wrong Food: " + message);
         }
 
-        // Reset selected item after feeding
+        // If feed was valid, check for coin rewards
+        if (validFeed)
+        {
+            tryEmitCoins();
+            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
+            flashMoneyGreen();
+
+            // Update the requirement visuals
+            displayRequirementSprite();
+        }
+
+        // Reset selected item after feeding attempt
         ZenGardenLayer::m_selectedItem = 0;
         ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
         ZenGardenLayer::m_starsHoverSprite->setVisible(false);
         ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
         ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     }
+    else
+    {
+        // No item selected, show player info popup
+        auto playerInfo = SimplePlayerInfo::create(ZenGardenLayer::m_simplePlayer);
+        if (playerInfo)
+        {
+            playerInfo->show();
+        }
+    }
 }
-
-void ZenGardenLayer::showCoinReward()
+void ZenGardenLayer::showBronzeCoinReward()
 {
     // Create a new coin sprite each time
     auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
@@ -489,6 +591,153 @@ void ZenGardenLayer::showCoinReward()
     auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
 
     newCoinSprite->runAction(sequence);
+
+    // Show text indicating +10
+    auto rewardText = CCLabelBMFont::create("+$10", "bigFont.fnt");
+    rewardText->setScale(0.4f);
+    rewardText->setPosition(ccp(coinX + 35, coinY));
+    rewardText->setColor({121, 75, 42}); // Brown color
+    this->addChild(rewardText);
+
+    auto textFadeOut = CCFadeOut::create(1.8f);
+    auto textMoveUp = CCMoveBy::create(1.8f, ccp(0, 35));
+    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
+    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
+    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
+
+    rewardText->runAction(textSequence);
+}
+
+void ZenGardenLayer::showSilverCoinReward()
+{
+    // Create a new coin sprite each time
+    auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
+    if (!newCoinSprite)
+        return;
+
+    // Position the coin above the SimplePlayer
+    auto windowSize = CCDirector::sharedDirector()->getWinSize();
+    int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
+    int coinX = (windowSize.width / 2) + xPositions[0];
+    int coinY = (windowSize.height / 2) + 75 + 30; // 30 pixels above the player
+
+    newCoinSprite->setPosition(ccp(coinX, coinY));
+    newCoinSprite->setVisible(true);
+    newCoinSprite->setOpacity(255);
+    newCoinSprite->setScale(0.6f); // Slightly larger than regular
+
+    this->addChild(newCoinSprite);
+
+    // Create a fade out and move up animation with sparkle effect
+    auto fadeOut = CCFadeOut::create(2.5f);
+    auto moveUp = CCMoveBy::create(2.5f, ccp(0, 60));
+    auto scaleUp = CCScaleTo::create(0.3f, 0.8f);
+    auto scaleDown = CCScaleTo::create(2.2f, 0.4f);
+
+    auto scaleSequence = CCSequence::create(scaleUp, scaleDown, nullptr);
+    auto moveAndFade = CCSpawn::create(fadeOut, moveUp, scaleSequence, nullptr);
+
+    // Remove the coin after animation
+    auto removeCallback = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
+    auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
+
+    newCoinSprite->runAction(sequence);
+
+    // Show text indicating +100
+    auto rewardText = CCLabelBMFont::create("+$100", "bigFont.fnt");
+    rewardText->setScale(0.5f);
+    rewardText->setPosition(ccp(coinX + 35, coinY));
+    this->addChild(rewardText);
+
+    auto textFadeOut = CCFadeOut::create(2.0f);
+    auto textMoveUp = CCMoveBy::create(2.0f, ccp(0, 40));
+    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
+    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
+    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
+
+    rewardText->runAction(textSequence);
+}
+
+void ZenGardenLayer::showGoldCoinReward()
+{
+    // Create a new coin sprite each time
+    auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
+    if (!newCoinSprite)
+        return;
+
+    // Position the coin above the SimplePlayer
+    auto windowSize = CCDirector::sharedDirector()->getWinSize();
+    int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
+    int coinX = (windowSize.width / 2) + xPositions[0];
+    int coinY = (windowSize.height / 2) + 75 + 30; // 30 pixels above the player
+
+    newCoinSprite->setPosition(ccp(coinX, coinY));
+    newCoinSprite->setVisible(true);
+    newCoinSprite->setOpacity(255);
+    newCoinSprite->setScale(0.7f);          // Larger than silver
+    newCoinSprite->setColor({255, 215, 0}); // Gold color
+
+    this->addChild(newCoinSprite);
+
+    // Create a fancy animation for gold coins
+    auto fadeOut = CCFadeOut::create(3.0f);
+    auto moveUp = CCMoveBy::create(3.0f, ccp(0, 70));
+    auto scaleUp = CCScaleTo::create(0.4f, 1.0f);
+    auto scaleDown = CCScaleTo::create(2.6f, 0.5f);
+
+    auto scaleSequence = CCSequence::create(scaleUp, scaleDown, nullptr);
+    auto moveAndFade = CCSpawn::create(fadeOut, moveUp, scaleSequence, nullptr);
+
+    // Remove the coin after animation
+    auto removeCallback = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
+    auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
+
+    newCoinSprite->runAction(sequence);
+
+    // Show text indicating +1000
+    auto rewardText = CCLabelBMFont::create("+$1000", "bigFont.fnt");
+    rewardText->setScale(0.6f);
+    rewardText->setPosition(ccp(coinX + 35, coinY));
+    rewardText->setColor({255, 215, 0}); // Gold color
+    this->addChild(rewardText);
+
+    auto textFadeOut = CCFadeOut::create(2.5f);
+    auto textMoveUp = CCMoveBy::create(2.5f, ccp(0, 50));
+    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
+    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
+    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
+
+    rewardText->runAction(textSequence);
+}
+
+void ZenGardenLayer::tryEmitCoins()
+{
+    // Generate random number between 1-100
+    int randomChance = rand() % 100 + 1;
+
+    // 90% chance for bronze coin
+    if (randomChance <= 90)
+    {
+        showBronzeCoinReward();
+        ZenGardenLayer::m_money += 10;
+    }
+
+    // 9% chance for silver coin (91-99)
+    if (randomChance >= 91 && randomChance <= 99)
+    {
+        showSilverCoinReward();
+        ZenGardenLayer::m_money += 100;
+        Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
+        flashMoneyGreen();
+    }
+    // 1% chance for gold coin (100)
+    else if (randomChance == 100)
+    {
+        showGoldCoinReward();
+        ZenGardenLayer::m_money += 1000;
+        Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
+        flashMoneyGreen();
+    }
 }
 
 void ZenGardenLayer::flashMoneyGreen()
@@ -511,6 +760,154 @@ void ZenGardenLayer::removeCoinSprite(CCNode *sender)
     }
 }
 
+void ZenGardenLayer::displayRequirementSprite()
+{
+    auto windowSize = CCDirector::sharedDirector()->getWinSize();
+    int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
+    int iconX = (windowSize.width / 2) + xPositions[0] - 15; // Position to the left of player
+    int iconY = (windowSize.height / 2) + 75 + 15;           // Position above player
+
+    // Remove old sprite and label if they exist
+    if (m_requirementSprite)
+    {
+        m_requirementSprite->removeFromParent();
+        m_requirementSprite = nullptr;
+    }
+
+    if (m_requirementLabel)
+    {
+        m_requirementLabel->removeFromParent();
+        m_requirementLabel = nullptr;
+    }
+
+    // Don't show anything if fully mature (level 5)
+    if (m_maturityLevel >= 5)
+    {
+        return;
+    }
+
+    // Create appropriate sprite based on maturity level
+    if (m_maturityLevel < 1)
+    {
+        m_requirementSprite = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
+        m_requirementSprite->setColor({255, 255, 255});
+
+        // Add orb counter label
+        m_requirementLabel = CCLabelBMFont::create((std::to_string(m_orbsFeeded) + "/5").c_str(), "goldFont.fnt");
+        m_requirementLabel->setScale(0.3f);
+        m_requirementLabel->setPosition(ccp(iconX + 12, iconY - 8));
+        this->addChild(m_requirementLabel);
+    }
+    else if (m_maturityLevel < 2)
+    {
+        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
+    }
+    else if (m_maturityLevel < 3)
+    {
+        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
+    }
+    else if (m_maturityLevel < 5)
+    {
+        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
+    }
+
+    if (m_requirementSprite)
+    {
+        m_requirementSprite->setScale(0.4f);
+        m_requirementSprite->setPosition(ccp(iconX, iconY));
+        this->addChild(m_requirementSprite);
+    }
+}
+
+void ZenGardenLayer::hideRequirementSprite()
+{
+    if (m_requirementSprite)
+    {
+        m_requirementSprite->removeFromParent();
+        m_requirementSprite = nullptr;
+    }
+
+    if (m_requirementLabel)
+    {
+        m_requirementLabel->removeFromParent();
+        m_requirementLabel = nullptr;
+    }
+}
+
+void ZenGardenLayer::updatePlayerMaturityVisuals()
+{
+    // Update player scale based on maturity level
+    if (m_simplePlayer)
+    {
+        float playerScale = 0.5f + (m_maturityLevel * 0.06f);
+        playerScale = std::min(playerScale, 0.8f); // Cap at 0.8f
+        m_simplePlayer->setScale(playerScale);
+    }
+
+    // Update requirement sprite
+    displayRequirementSprite();
+}
+
+void ZenGardenLayer::handlePlayerGrowth()
+{
+    // Handle growth based on maturity level
+    if (m_maturityLevel < 5)
+    {
+        // Increase maturity level
+        m_maturityLevel++;
+
+        // Reset orbs fed counter when leveling up from baby
+        if (m_maturityLevel == 1)
+        {
+            m_orbsFeeded = 0;
+        }
+
+        // Save updated maturity level
+        Mod::get()->setSavedValue<int>("player_maturity", m_maturityLevel);
+
+        // Update visuals
+        updatePlayerMaturityVisuals();
+
+        // Show message
+        std::string message = "Your player grew to maturity level " + std::to_string(m_maturityLevel) + "!";
+        FLAlertLayer::create(
+            "Level Up!",
+            message,
+            "OK")
+            ->show();
+    }
+}
+
+bool ZenGardenLayer::canFeedOrb()
+{
+    // system time
+    auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    
+    float timeSinceLastFeed = static_cast<float>(currentTime - m_lastOrbFeedTime);
+
+    // 15-20 second cooldown (use 17.5 seconds)
+    return timeSinceLastFeed >= 17.5f;
+}
+
+void ZenGardenLayer::displayOrbCooldownMessage()
+{
+    // accurate seconds calculation
+    auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    
+    float timeSinceLastFeed = static_cast<float>(currentTime - m_lastOrbFeedTime);
+    float remainingTime = 17.5f - timeSinceLastFeed;
+    
+    // don't show negative time
+    int secondsRemaining = static_cast<int>(ceilf(remainingTime > 0 ? remainingTime : 0));
+    
+    std::string message = "Please wait " + std::to_string(secondsRemaining) + " seconds before feeding another orb.";
+
+    log::debug("Feeding Cooldown: {}", message);
+    Notification::create("Feeding Cooldown: " + message);
+}
+
 void ZenGardenLayer::update(float dt)
 {
     if (ZenGardenLayer::m_selectedItem != 0)
@@ -519,12 +916,16 @@ void ZenGardenLayer::update(float dt)
         {
         case 1:
             ZenGardenLayer::m_orbsHoverSprite->setPosition(getMousePos());
+            break;
         case 2:
             ZenGardenLayer::m_starsHoverSprite->setPosition(getMousePos());
+            break;
         case 3:
             ZenGardenLayer::m_moonsHoverSprite->setPosition(getMousePos());
+            break;
         case 4:
             ZenGardenLayer::m_diamondsHoverSprite->setPosition(getMousePos());
+            break;
         }
     }
 
@@ -532,4 +933,61 @@ void ZenGardenLayer::update(float dt)
     ZenGardenLayer::m_moonsLabel->setString(std::to_string(ZenGardenLayer::m_moonCount).c_str(), true);
     ZenGardenLayer::m_diamondsLabel->setString(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), true);
     ZenGardenLayer::m_moneyLabel->setString(("$" + std::to_string(ZenGardenLayer::m_money)).c_str(), true);
+
+    // If we have a requirement label showing for orbs (maturity level 0), update it
+    if (m_maturityLevel == 0 && m_requirementLabel)
+    {
+        m_requirementLabel->setString((std::to_string(m_orbsFeeded) + "/5").c_str(), true);
+    }
+}
+
+void ZenGardenLayer::onResetProgress(CCObject* sender)
+{
+    // Show confirmation dialog using Geode's createQuickPopup
+    geode::createQuickPopup(
+        "Reset Progress",
+        "Are you sure you want to reset ALL progress?\n\nThis will reset your maturity level, resources, and all player stats to default values.\n\nThis action cannot be undone!",
+        "Cancel", "Reset",
+        [this](auto, bool btn2) {
+            if (btn2) {
+                this->confirmResetProgress();
+            }
+        }
+    );
+}
+
+void ZenGardenLayer::confirmResetProgress()
+{
+    // Reset all saved values to default
+    Mod::get()->setSavedValue<int>("player_maturity", 0);
+    Mod::get()->setSavedValue<int>("player_orbs_fed", 0);
+    Mod::get()->setSavedValue<float>("player_last_orb_feed", 0.0f);
+    Mod::get()->setSavedValue<int>("stars", 2);
+    Mod::get()->setSavedValue<int>("moons", 3);
+    Mod::get()->setSavedValue<int>("diamonds", 4);
+    Mod::get()->setSavedValue<int>("money", 1000);
+    
+    // Update in-memory values
+    m_maturityLevel = 0;
+    m_orbsFeeded = 0;
+    m_lastOrbFeedTime = 0.0f;
+    m_starCount = 2;
+    m_moonCount = 3;
+    m_diamondCount = 4;
+    m_money = 1000;
+    
+    // Update player scale based on new maturity level
+    if (m_simplePlayer) {
+        m_simplePlayer->setScale(0.5f); // Base scale for baby player
+    }
+    
+    // Update visuals
+    displayRequirementSprite();
+    
+    // Show confirmation message
+    FLAlertLayer::create(
+        "Progress Reset",
+        "Your progress has been reset to default values!",
+        "OK"
+    )->show();
 }

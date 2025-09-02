@@ -1,6 +1,7 @@
 #pragma once
 #include <Geode/Geode.hpp>
 #include <cocos2d.h>
+#include "SimplePlayerInfo.hpp"
 
 using namespace geode::prelude;
 using namespace cocos2d;
@@ -17,10 +18,26 @@ public:
     void onFeedMoons(CCObject *sender);
     void onFeedDiamonds(CCObject *sender);
     void onSimplePlayerClicked(CCObject *sender);
-    void showCoinReward();
+    void showBronzeCoinReward();
+    void showSilverCoinReward();
+    void showGoldCoinReward();
     void flashMoneyGreen();
     void removeCoinSprite(CCNode* sender);
+    void tryEmitCoins();
     void update(float dt);
+    
+    // Maturity system methods
+    void initializePlayerMaturity();
+    void updatePlayerMaturityVisuals();
+    void handlePlayerGrowth();
+    bool canFeedOrb();
+    void displayOrbCooldownMessage();
+    void displayRequirementSprite();
+    void hideRequirementSprite();
+    
+    // Reset progress functionality
+    void onResetProgress(CCObject* sender);
+    void confirmResetProgress();
 
     int m_selectedItem = 0;
     int m_starCount = 2;
@@ -36,4 +53,11 @@ public:
     CCLabelBMFont *m_diamondsLabel;
     CCLabelBMFont *m_moneyLabel;
     SimplePlayer *m_simplePlayer;
+    
+    // Maturity system variables
+    int m_maturityLevel = 0; // 0-5, with 5 being fully mature
+    int m_orbsFeeded = 0; // Track orbs fed to the player
+    float m_lastOrbFeedTime = 0.0f; // When the player was last fed an orb
+    CCSprite *m_requirementSprite = nullptr; // Visual indicator for what food the player needs
+    CCLabelBMFont *m_requirementLabel = nullptr; // Label for orbs progress (X/5)
 };
