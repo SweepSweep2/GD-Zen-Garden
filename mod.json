@@ -12,8 +12,11 @@
 		]
 	},
 	"id": "sweep.zen-garden",
-	"name": "zen-garden",
+	"name": "Zen Garden",
 	"version": "v1.0.0",
-	"developer": "Sweep",
+	"developers": [
+		"Sweep",
+		"ArcticWoof"
+],
 	"description": "A mod that adds the PVZ Zen Garden."
 }

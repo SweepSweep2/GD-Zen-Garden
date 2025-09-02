@@ -21,7 +21,7 @@ public:
     void showBronzeCoinReward();
     void showSilverCoinReward();
     void showGoldCoinReward();
-    void flashMoneyGreen();
+    void flashShards();
     void removeCoinSprite(CCNode* sender);
     void tryEmitCoins();
     void update(float dt);
@@ -38,12 +38,16 @@ public:
     // Reset progress functionality
     void onResetProgress(CCObject* sender);
     void confirmResetProgress();
+    
+    // Cheat functionality
+    void cheat();
+    void keyDown(enumKeyCodes key) override;
 
     int m_selectedItem = 0;
     int m_starCount = 2;
     int m_moonCount = 3;
     int m_diamondCount = 4;
-    int m_money = 1000;
+    int m_diamondShards = 0;
     CCSprite *m_orbsHoverSprite;
     CCSprite *m_starsHoverSprite;
     CCSprite *m_moonsHoverSprite;
@@ -51,7 +55,8 @@ public:
     CCLabelBMFont *m_starsLabel;
     CCLabelBMFont *m_moonsLabel;
     CCLabelBMFont *m_diamondsLabel;
-    CCLabelBMFont *m_moneyLabel;
+    CCLabelBMFont *m_diamondShardsLabel;
+    CCSprite *m_diamondCurrencyIcon;
     SimplePlayer *m_simplePlayer;
     
     // Maturity system variables

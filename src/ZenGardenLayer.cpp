@@ -65,7 +65,7 @@ void ZenGardenLayer::onBack(CCObject *sender)
     Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
     Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
     Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
-    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
+    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
     CCDirector::sharedDirector()->popScene();
 }
 
@@ -147,7 +147,15 @@ bool ZenGardenLayer::init()
     if (!CCLayer::init())
         return false;
 
+    // Automatically set the shards to the new value
+    int getShards = GameStatsManager::sharedState()->getStat("29");
+    ZenGardenLayer::m_diamondShards = Mod::get()->setSavedValue<int>("money", getShards);
+
+
     this->scheduleUpdate();
+    
+    // Enable keyboard input for cheat functionality
+    this->setKeyboardEnabled(true);
 
     this->setID("zen-garden");
 
@@ -155,9 +163,9 @@ bool ZenGardenLayer::init()
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
 
     ZenGardenLayer::m_starCount = Mod::get()->getSavedValue<int>("stars");
-    ZenGardenLayer::m_moonCount = Mod::get()->getSavedValue<int>("moons", 3);
-    ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds", 4);
-    ZenGardenLayer::m_money = Mod::get()->getSavedValue<int>("money", 1000);
+    ZenGardenLayer::m_moonCount = Mod::get()->getSavedValue<int>("moons");
+    ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds");
+    ZenGardenLayer::m_diamondShards = Mod::get()->getSavedValue<int>("money");
 
     // Initialize maturity system variables
     ZenGardenLayer::m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
@@ -308,12 +316,24 @@ bool ZenGardenLayer::init()
 
     topBarMenu->addChild(ZenGardenLayer::m_diamondsLabel);
 
-    ZenGardenLayer::m_moneyLabel = CCLabelBMFont::create("$1000", "bigFont.fnt");
-    ZenGardenLayer::m_moneyLabel->setScale(0.65f);
-    ZenGardenLayer::m_moneyLabel->setID("money-count");
-    ZenGardenLayer::m_moneyLabel->setPosition(windowSize.width / 2, windowSize.height - 300);
+    ZenGardenLayer::m_diamondShardsLabel = CCLabelBMFont::create("-", "bigFont.fnt");
+    ZenGardenLayer::m_diamondShardsLabel->setScale(0.65f);
+    ZenGardenLayer::m_diamondShardsLabel->setID("money-count");
+    ZenGardenLayer::m_diamondShardsLabel->setPosition(windowSize.width / 2, windowSize.height - 300);
+    
+    // diamond icon next to the label
+    auto diamondIcon = CCSprite::createWithSpriteFrameName("currencyDiamondIcon_001.png");
+    diamondIcon->setScale(0.8f);
+    diamondIcon->setID("diamond-currency-icon");
+    
+    float labelWidth = m_diamondShardsLabel->getContentWidth() * m_diamondShardsLabel->getScale();
+    diamondIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
 
-    this->addChild(ZenGardenLayer::m_moneyLabel);
+    this->addChild(diamondIcon);
+    this->addChild(ZenGardenLayer::m_diamondShardsLabel);
+    
+    // Store the diamond icon as a member variable to update its position later
+    m_diamondCurrencyIcon = diamondIcon;
 
     auto iconBackgrounds = CCSpriteBatchNode::create("GJ_button_05.png");
     iconBackgrounds->setZOrder(-1);
@@ -533,8 +553,8 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
         if (validFeed)
         {
             tryEmitCoins();
-            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-            flashMoneyGreen();
+            Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
+            flashShards();
 
             // Update the requirement visuals
             displayRequirementSprite();
@@ -594,7 +614,7 @@ void ZenGardenLayer::showBronzeCoinReward()
     newCoinSprite->runAction(sequence);
 
     // Show text indicating +10
-    auto rewardText = CCLabelBMFont::create("+$10", "bigFont.fnt");
+    auto rewardText = CCLabelBMFont::create("+10", "bigFont.fnt");
     rewardText->setScale(0.4f);
     rewardText->setPosition(ccp(coinX + 35, coinY));
     rewardText->setColor({121, 75, 42}); // Brown color
@@ -645,7 +665,7 @@ void ZenGardenLayer::showSilverCoinReward()
     newCoinSprite->runAction(sequence);
 
     // Show text indicating +100
-    auto rewardText = CCLabelBMFont::create("+$100", "bigFont.fnt");
+    auto rewardText = CCLabelBMFont::create("+100", "bigFont.fnt");
     rewardText->setScale(0.5f);
     rewardText->setPosition(ccp(coinX + 35, coinY));
     this->addChild(rewardText);
@@ -696,7 +716,7 @@ void ZenGardenLayer::showGoldCoinReward()
     newCoinSprite->runAction(sequence);
 
     // Show text indicating +1000
-    auto rewardText = CCLabelBMFont::create("+$1000", "bigFont.fnt");
+    auto rewardText = CCLabelBMFont::create("+1000", "bigFont.fnt");
     rewardText->setScale(0.6f);
     rewardText->setPosition(ccp(coinX + 35, coinY));
     rewardText->setColor({255, 215, 0}); // Gold color
@@ -720,37 +740,38 @@ void ZenGardenLayer::tryEmitCoins()
     if (randomChance <= 90)
     {
         showBronzeCoinReward();
-        ZenGardenLayer::m_money += 10;
+        ZenGardenLayer::m_diamondShards += 10;
+        GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
     }
 
     // 9% chance for silver coin (91-99)
     if (randomChance >= 91 && randomChance <= 99)
     {
         showSilverCoinReward();
-        ZenGardenLayer::m_money += 100;
-        Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-        flashMoneyGreen();
+        ZenGardenLayer::m_diamondShards += 100;
+        GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
+        flashShards();
     }
     // 1% chance for gold coin (100)
     else if (randomChance == 100)
     {
         showGoldCoinReward();
-        ZenGardenLayer::m_money += 1000;
-        Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_money);
-        flashMoneyGreen();
+        ZenGardenLayer::m_diamondShards += 1000;
+        GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
+        flashShards();
     }
 }
 
-void ZenGardenLayer::flashMoneyGreen()
+void ZenGardenLayer::flashShards()
 {
-    if (!ZenGardenLayer::m_moneyLabel)
+    if (!ZenGardenLayer::m_diamondShardsLabel)
         return;
 
-    ZenGardenLayer::m_moneyLabel->stopAllActions();
-    ZenGardenLayer::m_moneyLabel->setColor({0, 255, 0});
+    ZenGardenLayer::m_diamondShardsLabel->stopAllActions();
+    ZenGardenLayer::m_diamondShardsLabel->setColor({ 0, 225, 255 });
     auto fadeToWhite = CCTintTo::create(2.0f, 255, 255, 255);
 
-    ZenGardenLayer::m_moneyLabel->runAction(fadeToWhite);
+    ZenGardenLayer::m_diamondShardsLabel->runAction(fadeToWhite);
 }
 
 void ZenGardenLayer::removeCoinSprite(CCNode *sender)
@@ -937,7 +958,13 @@ void ZenGardenLayer::update(float dt)
     ZenGardenLayer::m_starsLabel->setString(std::to_string(ZenGardenLayer::m_starCount).c_str(), true);
     ZenGardenLayer::m_moonsLabel->setString(std::to_string(ZenGardenLayer::m_moonCount).c_str(), true);
     ZenGardenLayer::m_diamondsLabel->setString(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), true);
-    ZenGardenLayer::m_moneyLabel->setString(("$" + std::to_string(ZenGardenLayer::m_money)).c_str(), true);
+    ZenGardenLayer::m_diamondShardsLabel->setString((std::to_string(ZenGardenLayer::m_diamondShards)).c_str(), true);
+    
+    // Update diamond currency icon position based on label width
+    if (m_diamondCurrencyIcon && m_diamondShardsLabel) {
+        float labelWidth = m_diamondShardsLabel->getContentWidth() * m_diamondShardsLabel->getScale();
+        m_diamondCurrencyIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
+    }
 
     // If we have a requirement label showing for orbs (maturity level 0), update it
     if (m_maturityLevel == 0 && m_requirementLabel)
@@ -948,18 +975,24 @@ void ZenGardenLayer::update(float dt)
 
 void ZenGardenLayer::onResetProgress(CCObject *sender)
 {
+    if (m_diamondShards >= 1000) {
     // Show confirmation dialog using Geode's createQuickPopup
     geode::createQuickPopup(
         "Reset Progress",
-        "Are you sure you want to reset ALL progress?\n\nThis will reset your maturity level, resources, and all player stats to default values.\n\nThis action cannot be undone!",
+        "Are you sure you want to reset <cr>ALL</c> progress?\n\nThis will reset your maturity level, resources, and all player stats.\nThis will cost <cc>1000 Diamond Shards</c> to reset\n<cr>This action cannot be undone!</c>",
         "Cancel", "Reset",
         [this](auto, bool btn2)
         {
             if (btn2)
             {
+                m_diamondShards -= 1000;
+                GameStatsManager::sharedState()->setStat("29", m_diamondShards);
                 this->confirmResetProgress();
             }
         });
+    } else {
+        Notification::create("You don't have enough to reset! Required 1000 Diamond Shards", NotificationIcon::Error, 0.5f)->show();
+    }
 }
 
 void ZenGardenLayer::confirmResetProgress()
@@ -971,7 +1004,7 @@ void ZenGardenLayer::confirmResetProgress()
     Mod::get()->setSavedValue<int>("stars", 2);
     Mod::get()->setSavedValue<int>("moons", 3);
     Mod::get()->setSavedValue<int>("diamonds", 4);
-    Mod::get()->setSavedValue<int>("money", 1000);
+    Mod::get()->setSavedValue<int>("money", 0);
 
     // Update in-memory values
     m_maturityLevel = 0;
@@ -980,7 +1013,7 @@ void ZenGardenLayer::confirmResetProgress()
     m_starCount = 2;
     m_moonCount = 3;
     m_diamondCount = 4;
-    m_money = 1000;
+    m_diamondShards = GameStatsManager::sharedState()->getStat("29");
 
     // Update player scale based on new maturity level
     if (m_simplePlayer)
@@ -997,4 +1030,24 @@ void ZenGardenLayer::confirmResetProgress()
         "Your progress has been reset to default values!",
         "OK")
         ->show();
+}
+
+
+// I accidentally wipped my diamond shards so this is needed for me xD
+// also using this is considered cheating
+void ZenGardenLayer::cheat() {
+
+    ZenGardenLayer::m_diamondShards += 1000;
+    GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
+    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
+    flashShards();
+}
+
+void ZenGardenLayer::keyDown(enumKeyCodes key) {
+    // Check for the "J" key press (74 is the key code for 'J')
+    if (key == KEY_J) {
+        cheat();
+    }
+    
+    CCLayer::keyDown(key);
 }
