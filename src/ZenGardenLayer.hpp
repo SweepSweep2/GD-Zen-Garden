@@ -12,6 +12,7 @@ public:
     static ZenGardenLayer *create();
     bool init() override;
     void onBack(CCObject *sender);
+    void onShop(CCObject *sender);
     void keyBackClicked() override;
     void onFeedOrbs(CCObject *sender);
     void onFeedStars(CCObject *sender);

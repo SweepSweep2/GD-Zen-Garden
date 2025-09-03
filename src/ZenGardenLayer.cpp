@@ -1,4 +1,5 @@
 #include "ZenGardenLayer.hpp"
+#include "ZenGardenShopLayer.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
 #include <Geode/ui/Notification.hpp>
@@ -67,6 +68,19 @@ void ZenGardenLayer::onBack(CCObject *sender)
     Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
     Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
     CCDirector::sharedDirector()->popScene();
+}
+
+void ZenGardenLayer::onShop(CCObject *sender)
+{
+    Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
+    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
+    Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
+    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
+
+    auto scene = CCScene::create();
+	scene->addChild(ZenGardenShopLayer::create());
+
+	CCDirector::get()->pushScene(CCTransitionFade::create(.5f, scene));
 }
 
 void ZenGardenLayer::keyBackClicked()
@@ -193,6 +207,17 @@ bool ZenGardenLayer::init()
     close->setID("exit-zen-garden");
 
     exitMenu->addChild(close);
+
+    auto toShop = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("shopRope_001.png"),
+        this,
+        menu_selector(ZenGardenLayer::onShop)
+    );
+    
+    toShop->setPosition((windowSize.width / 2) - 120, (windowSize.height / 2) - 10);
+    toShop->setID("shop-button");
+
+    exitMenu->addChild(toShop);
 
     auto topBarMenu = CCMenu::create();
     topBarMenu->setID("top-bar-menu");
