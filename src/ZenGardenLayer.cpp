@@ -477,7 +477,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
                 message = "needs diamonds.";
             else
                 message = "Player fully mature.";
-            // Replace generic prefix with the player's given name
+            // player's given name
             std::string playerName = Mod::get()->getSavedValue<std::string>(
                 "player_name_" + std::to_string(clickedPos), "");
             if (playerName.empty()) playerName = "Player";

@@ -10,7 +10,7 @@ SimplePlayerInfo *SimplePlayerInfo::create(SimplePlayer *player, int slotIndex)
 {
     auto ret = new SimplePlayerInfo();
 
-    // Set slot index BEFORE init so setup() can load per-slot data
+    // Set slot index BEFORE init so setup()
     if (ret)
         ret->m_slotIndex = slotIndex;
 
@@ -131,9 +131,9 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
     if (m_nameInput)
     {
         // Allow typical name characters
-        m_nameInput->setCommonFilter(geode::CommonFilter::Name);
+        m_nameInput->setCommonFilter(CommonFilter::Alphabetic);
         m_nameInput->setMaxCharCount(20);
-        m_nameInput->setTextAlign(geode::TextInputAlign::Center);
+        m_nameInput->setTextAlign(TextInputAlign::Center);
         // Position above the displayed player icon
         m_nameInput->setPosition({125.f, 150.f});
         // Load saved name if any
