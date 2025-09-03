@@ -57,6 +57,7 @@ public:
     static CCArray* getOccupiedPositions();
     void reloadGardenFromSaves();
     void updateSlotRequirementUI(int pos);
+    void sellPlayerAtPos(int pos);
 
     // Active player tracking (slot index 0-7), -1 when none
     int m_activePos = -1;

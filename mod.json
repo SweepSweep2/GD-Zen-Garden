@@ -18,5 +18,18 @@
 		"Sweep",
 		"ArcticWoof"
 ],
-	"description": "A mod that adds the PVZ Zen Garden."
+	"tags": [
+		"offline",
+		"content",
+		"interface"
+	],
+	"description": "A mod that adds the PVZ Zen Garden.",
+	"settings": {
+		"cheat": {
+			"name": "Enable Cheat",
+			"description": "Allows the use of cheats.",
+			"type": "bool",
+			"default": false
+		}
+	}
 }

@@ -27,6 +27,7 @@ protected:
     
     bool setup(SimplePlayer *player) override;
     void updateMaturityInfo(); // Updates the display with maturity information
+    void onSell(CCObject* sender);
     
 public:
     static SimplePlayerInfo *create(SimplePlayer *player, int slotIndex);

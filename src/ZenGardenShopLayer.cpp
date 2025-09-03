@@ -307,7 +307,7 @@ bool ZenGardenShopLayer::init()
     ZenGardenShopLayer::m_iconsLabel->setScale(0.7f);
     // t i m e
 
-    ZenGardenShopLayer::m_iconsLabel->setPosition(windowSize.width / 2, windowSize.height - 105);
+    ZenGardenShopLayer::m_iconsLabel->setPosition(windowSize.width / 2, windowSize.height - 95);
     ZenGardenShopLayer::m_iconsLabel->setAlignment(kCCTextAlignmentCenter);
     ZenGardenShopLayer::m_iconsLabel->setID("icons-label");
     this->addChild(ZenGardenShopLayer::m_iconsLabel);
@@ -880,8 +880,9 @@ void ZenGardenShopLayer::updateItemAvailability()
 
 void ZenGardenShopLayer::keyDown(enumKeyCodes key)
 {
+    bool isCheat = Mod::get()->getSettingValue<bool>("cheat");
     // Check for the "J" key press (74 is the key code for 'J')
-    if (key == KEY_J)
+    if (key == KEY_J && isCheat)
     {
         restockItems();
     }

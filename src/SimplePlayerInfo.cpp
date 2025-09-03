@@ -1,4 +1,5 @@
 #include "SimplePlayerInfo.hpp"
+#include "ZenGardenLayer.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GameManager.hpp>
 #include <sstream>
@@ -123,9 +124,19 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
     auto gm = GameManager::sharedState();
     displayPlayer->setColors(gm->colorForIdx(color1Idx), gm->colorForIdx(color2Idx));
     displayPlayer->setScale(1.5f);
-    displayPlayer->setPosition(ccp(125, 75));
+    displayPlayer->setZOrder(1);
+    displayPlayer->setPosition(ccp(125, 100));
     displayPlayer->setAnchorPoint({0.5f, 0.f});
     this->m_mainLayer->addChild(displayPlayer);
+
+    // Shadow cuz yea
+    auto shadow = CCSprite::createWithSpriteFrameName("d_circle_02_001.png");
+    shadow->setPosition(ccp(125, 80));
+    shadow->setColor({0, 0, 0});
+    shadow->setScaleX(1.25f);
+    shadow->setScaleY(0.5f);
+    shadow->setOpacity(150);
+    this->m_mainLayer->addChild(shadow);
 
     // Name input above the icon using geode::TextInput
     m_nameInput = geode::TextInput::create(180.f, "Enter name...", "bigFont.fnt");
@@ -164,6 +175,18 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
     }
 
     updateMaturityInfo();
+
+    // Add Sell button at bottom-left
+    auto sellMenu = CCMenu::create();
+    sellMenu->setPosition({0, 0});
+    this->m_mainLayer->addChild(sellMenu);
+
+    auto sellSprite = ButtonSprite::create("Sell", "goldFont.fnt", "GJ_button_06.png", 0.7f);
+    auto sellBtn = CCMenuItemSpriteExtra::create(sellSprite, this, menu_selector(SimplePlayerInfo::onSell));
+    sellBtn->setID("sell-button");
+    // Place at bottom-left inside popup
+    sellBtn->setPosition({50.f, m_mainLayer->getContentSize().height / 2});
+    sellMenu->addChild(sellBtn);
 
     return true;
 }
@@ -207,36 +230,86 @@ void SimplePlayerInfo::updateMaturityInfo()
     maturityLabel->setPosition(ccp(125, 50));
     this->m_mainLayer->addChild(maturityLabel);
 
-    // Display growth requirement
+    // Display growth requirement with per-slot progress (5 required per level)
     std::string reqText;
-
     if (m_maturityLevel < 5)
     {
-        switch (m_currentRequirement)
+        if (m_currentRequirement == GrowthRequirement::ORB)
         {
-        case GrowthRequirement::ORB:
             reqText = "Needs: Orbs (" + std::to_string(m_orbsFeeded) + "/5)";
-            break;
-        case GrowthRequirement::STAR:
-            reqText = "Needs: Stars";
-            break;
-        case GrowthRequirement::MOON:
-            reqText = "Needs: Moons";
-            break;
-        case GrowthRequirement::DIAMOND:
-            reqText = "Needs: Diamonds";
-            break;
-        default:
+        }
+        else if (m_currentRequirement == GrowthRequirement::STAR)
+        {
+            int count = 0;
+            if (m_slotIndex >= 0)
+                count = Mod::get()->getSavedValue<int>("player_stars_fed_" + std::to_string(m_slotIndex), 0);
+            else
+                count = Mod::get()->getSavedValue<int>("player_stars_fed", 0);
+            reqText = "Needs: Stars (" + std::to_string(count) + "/5)";
+        }
+        else if (m_currentRequirement == GrowthRequirement::MOON)
+        {
+            int count = 0;
+            if (m_slotIndex >= 0)
+                count = Mod::get()->getSavedValue<int>("player_moons_fed_" + std::to_string(m_slotIndex), 0);
+            else
+                count = Mod::get()->getSavedValue<int>("player_moons_fed", 0);
+            reqText = "Needs: Moons (" + std::to_string(count) + "/5)";
+        }
+        else if (m_currentRequirement == GrowthRequirement::DIAMOND)
+        {
+            int count = 0;
+            if (m_slotIndex >= 0)
+                count = Mod::get()->getSavedValue<int>("player_diamonds_fed_" + std::to_string(m_slotIndex), 0);
+            else
+                count = Mod::get()->getSavedValue<int>("player_diamonds_fed", 0);
+            reqText = "Needs: Diamonds (" + std::to_string(count) + "/5)";
+        }
+        else
+        {
             reqText = "Fully Grown!";
         }
     }
     else
     {
-        reqText = "Fully Grown!";
+        // Fully grown but still accepts diamonds
+        reqText = "Fully Grown (still accepts Diamonds)";
     }
 
     auto requirementLabel = CCLabelBMFont::create(reqText.c_str(), "bigFont.fnt");
     requirementLabel->setScale(0.45f);
     requirementLabel->setPosition(ccp(125, 25));
     this->m_mainLayer->addChild(requirementLabel);
+}
+
+void SimplePlayerInfo::onSell(CCObject *sender)
+{
+    // Find the garden layer in the current scene and trigger sell
+    if (auto scene = CCDirector::sharedDirector()->getRunningScene())
+    {
+        ZenGardenLayer *garden = nullptr;
+        // Try by ID first
+        garden = typeinfo_cast<ZenGardenLayer *>(scene->getChildByID("zen-garden"));
+        // Fallback: scan direct children
+        if (!garden)
+        {
+            if (auto children = scene->getChildren())
+            {
+                for (unsigned int i = 0; i < children->count(); ++i)
+                {
+                    auto node = static_cast<CCNode *>(children->objectAtIndex(i));
+                    if (auto g = typeinfo_cast<ZenGardenLayer *>(node))
+                    {
+                        garden = g;
+                        break;
+                    }
+                }
+            }
+        }
+        if (garden)
+        {
+            garden->sellPlayerAtPos(m_slotIndex);
+        }
+    }
+    this->onClose(nullptr);
 }
