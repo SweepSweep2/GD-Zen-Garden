@@ -20,12 +20,12 @@ public:
     void onFeedMoons(CCObject *sender);
     void onFeedDiamonds(CCObject *sender);
     void onSimplePlayerClicked(CCObject *sender);
-    void showBronzeCoinReward();
-    void showSilverCoinReward();
-    void showGoldCoinReward();
+    void showBronzeCoinReward(int pos);
+    void showSilverCoinReward(int pos);
+    void showGoldCoinReward(int pos);
     void flashShards();
     void removeCoinSprite(CCNode* sender);
-    void tryEmitCoins();
+    void tryEmitCoins(int pos);
     void update(float dt);
     
     // Maturity system methods

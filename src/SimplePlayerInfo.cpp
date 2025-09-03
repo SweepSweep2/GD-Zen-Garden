@@ -123,7 +123,8 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
     auto gm = GameManager::sharedState();
     displayPlayer->setColors(gm->colorForIdx(color1Idx), gm->colorForIdx(color2Idx));
     displayPlayer->setScale(1.5f);
-    displayPlayer->setPosition(ccp(125, 100));
+    displayPlayer->setPosition(ccp(125, 75));
+    displayPlayer->setAnchorPoint({0.5f, 0.f});
     this->m_mainLayer->addChild(displayPlayer);
 
     // Name input above the icon using geode::TextInput
@@ -134,8 +135,8 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
         m_nameInput->setCommonFilter(CommonFilter::Alphabetic);
         m_nameInput->setMaxCharCount(20);
         m_nameInput->setTextAlign(TextInputAlign::Center);
-        // Position above the displayed player icon
         m_nameInput->setPosition({125.f, 150.f});
+
         // Load saved name if any
         std::string savedName;
         if (m_slotIndex >= 0)

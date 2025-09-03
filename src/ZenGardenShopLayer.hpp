@@ -22,6 +22,7 @@ public:
     void checkPurchasedItems();
     void updateItemAvailability();
     void restockItems();
+    void keyDown(enumKeyCodes key);
     
     CCLabelBMFont *m_iconsLabel;
     CCLabelBMFont *m_diamondShardsLabel;

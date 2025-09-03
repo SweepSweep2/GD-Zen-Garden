@@ -267,12 +267,14 @@ bool ZenGardenLayer::init()
         while (std::getline(ss, token, ','))
         {
             int pos = -1;
-            if (!token.empty()) {
-                char* endp = nullptr;
+            if (!token.empty())
+            {
+                char *endp = nullptr;
                 long v = std::strtol(token.c_str(), &endp, 10);
-                if (endp && *endp == '\0') pos = static_cast<int>(v);
+                if (endp && *endp == '\0')
+                    pos = static_cast<int>(v);
             }
-            if (pos < 0 || pos >= 8)
+            if (pos < 0 || pos >= 32)
                 continue;
 
             std::string key = "player_" + std::to_string(pos);
@@ -314,11 +316,12 @@ bool ZenGardenLayer::init()
             ccColor3B c2 = gm->colorForIdx(color2Idx);
             playerNode->setColors(c1, c2);
 
-            // Position
-            int playerX = (windowSize.width / 2) + xPositions[pos];
-            int playerY = (windowSize.height / 2) + 75; // Top row
-            if (pos >= 4)
-                playerY -= 90; // Bottom row
+            // Position across 4 rows x 8 columns
+            int col = pos % 8;
+            int row = pos / 8; // 0..3
+            int rowOffsets[4] = {75, 25, -25, -75};
+            int playerX = (windowSize.width / 2) + xPositions[col];
+            int playerY = (windowSize.height / 2) + rowOffsets[(row < 4 ? row : 3)];
 
             // Scale by per-player maturity level (default 0)
             int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
@@ -480,13 +483,14 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             // player's given name
             std::string playerName = Mod::get()->getSavedValue<std::string>(
                 "player_name_" + std::to_string(clickedPos), "");
-            if (playerName.empty()) playerName = "Player";
+            if (playerName.empty())
+                playerName = "Player";
             Notification::create(playerName + " " + message, NotificationIcon::Warning, 1.f)->show();
         }
 
         if (validFeed)
         {
-            tryEmitCoins();
+            tryEmitCoins(clickedPos);
             Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
             flashShards();
             updatePlayerMaturityVisualsForPos(clickedPos);
@@ -571,7 +575,7 @@ void ZenGardenLayer::reloadGardenFromSaves()
                 if (endp && *endp == '\0')
                     pos = static_cast<int>(v);
             }
-            if (pos < 0 || pos >= 8)
+            if (pos < 0 || pos >= 32)
                 continue;
 
             std::string key = "player_" + std::to_string(pos);
@@ -608,10 +612,11 @@ void ZenGardenLayer::reloadGardenFromSaves()
             auto gm = GameManager::sharedState();
             playerNode->setColors(gm->colorForIdx(color1Idx), gm->colorForIdx(color2Idx));
 
-            int playerX = (windowSize.width / 2) + xPositions[pos];
-            int playerY = (windowSize.height / 2) + 75; // Top row
-            if (pos >= 4)
-                playerY -= 90; // Bottom row
+            int col = pos % 8;
+            int row = pos / 8; // 0..3
+            int rowOffsets[4] = {75, 25, -25, -75};
+            int playerX = (windowSize.width / 2) + xPositions[col];
+            int playerY = (windowSize.height / 2) + rowOffsets[(row < 4 ? row : 3)];
 
             int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
             float playerScale = std::min(0.5f + (perMaturity * 0.06f), 0.8f);
@@ -656,7 +661,7 @@ void ZenGardenLayer::updateSlotRequirementUI(int pos)
     displayRequirementSprite();
 }
 
-void ZenGardenLayer::showBronzeCoinReward()
+void ZenGardenLayer::showBronzeCoinReward(int pos)
 {
     // Create a new coin sprite each time
     auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
@@ -666,9 +671,12 @@ void ZenGardenLayer::showBronzeCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
-    int baseY = (posIdx < 4 ? 75 : (75 - 90));
-    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int posIdx = (pos >= 0 ? pos : (m_activePos >= 0 ? m_activePos : 0));
+    int col = posIdx % 8;
+    int row = posIdx / 8;
+    int rowOffsets[4] = {75, 25, -25, -75};
+    int baseY = rowOffsets[(row < 4 ? row : 3)];
+    int coinX = (windowSize.width / 2) + xPositions[col];
     int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
@@ -693,24 +701,9 @@ void ZenGardenLayer::showBronzeCoinReward()
     auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
 
     newCoinSprite->runAction(sequence);
-
-    // Show text indicating +10
-    auto rewardText = CCLabelBMFont::create("+10", "bigFont.fnt");
-    rewardText->setScale(0.4f);
-    rewardText->setPosition(ccp(coinX + 35, coinY));
-    rewardText->setColor({121, 75, 42}); // Brown color
-    this->addChild(rewardText);
-
-    auto textFadeOut = CCFadeOut::create(1.8f);
-    auto textMoveUp = CCMoveBy::create(1.8f, ccp(0, 35));
-    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
-    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
-    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
-
-    rewardText->runAction(textSequence);
 }
 
-void ZenGardenLayer::showSilverCoinReward()
+void ZenGardenLayer::showSilverCoinReward(int pos)
 {
     // Create a new coin sprite each time
     auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
@@ -720,9 +713,12 @@ void ZenGardenLayer::showSilverCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
-    int baseY = (posIdx < 4 ? 75 : (75 - 90));
-    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int posIdx = (pos >= 0 ? pos : (m_activePos >= 0 ? m_activePos : 0));
+    int col = posIdx % 8;
+    int row = posIdx / 8;
+    int rowOffsets[4] = {75, 25, -25, -75};
+    int baseY = rowOffsets[(row < 4 ? row : 3)];
+    int coinX = (windowSize.width / 2) + xPositions[col];
     int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
@@ -746,23 +742,9 @@ void ZenGardenLayer::showSilverCoinReward()
     auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
 
     newCoinSprite->runAction(sequence);
-
-    // Show text indicating +100
-    auto rewardText = CCLabelBMFont::create("+100", "bigFont.fnt");
-    rewardText->setScale(0.5f);
-    rewardText->setPosition(ccp(coinX + 35, coinY));
-    this->addChild(rewardText);
-
-    auto textFadeOut = CCFadeOut::create(2.0f);
-    auto textMoveUp = CCMoveBy::create(2.0f, ccp(0, 40));
-    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
-    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
-    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
-
-    rewardText->runAction(textSequence);
 }
 
-void ZenGardenLayer::showGoldCoinReward()
+void ZenGardenLayer::showGoldCoinReward(int pos)
 {
     // Create a new coin sprite each time
     auto newCoinSprite = CCSprite::createWithSpriteFrameName("GJ_coinsIcon2_001.png");
@@ -772,9 +754,12 @@ void ZenGardenLayer::showGoldCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
-    int baseY = (posIdx < 4 ? 75 : (75 - 90));
-    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int posIdx = (pos >= 0 ? pos : (m_activePos >= 0 ? m_activePos : 0));
+    int col = posIdx % 8;
+    int row = posIdx / 8;
+    int rowOffsets[4] = {75, 25, -25, -75};
+    int baseY = rowOffsets[(row < 4 ? row : 3)];
+    int coinX = (windowSize.width / 2) + xPositions[col];
     int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
@@ -799,32 +784,21 @@ void ZenGardenLayer::showGoldCoinReward()
     auto sequence = CCSequence::create(moveAndFade, removeCallback, nullptr);
 
     newCoinSprite->runAction(sequence);
-
-    // Show text indicating +1000
-    auto rewardText = CCLabelBMFont::create("+1000", "bigFont.fnt");
-    rewardText->setScale(0.6f);
-    rewardText->setPosition(ccp(coinX + 35, coinY));
-    rewardText->setColor({255, 215, 0}); // Gold color
-    this->addChild(rewardText);
-
-    auto textFadeOut = CCFadeOut::create(2.5f);
-    auto textMoveUp = CCMoveBy::create(2.5f, ccp(0, 50));
-    auto textSpawn = CCSpawn::create(textFadeOut, textMoveUp, nullptr);
-    auto textRemove = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::removeCoinSprite));
-    auto textSequence = CCSequence::create(textSpawn, textRemove, nullptr);
-
-    rewardText->runAction(textSequence);
 }
 
-void ZenGardenLayer::tryEmitCoins()
+void ZenGardenLayer::tryEmitCoins(int pos)
 {
     // Generate random number between 1-100
     int randomChance = rand() % 100 + 1;
 
+    // fmod engine
+    auto fmod = FMODAudioEngine::sharedEngine();
+
     // 90% chance for bronze coin
     if (randomChance <= 90)
     {
-        showBronzeCoinReward();
+        fmod->playEffect("gold01.ogg");
+        showBronzeCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 10;
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
     }
@@ -832,7 +806,8 @@ void ZenGardenLayer::tryEmitCoins()
     // 9% chance for silver coin (91-99)
     if (randomChance >= 91 && randomChance <= 99)
     {
-        showSilverCoinReward();
+        fmod->playEffect("gold01.ogg");
+        showSilverCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 100;
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
         flashShards();
@@ -840,7 +815,8 @@ void ZenGardenLayer::tryEmitCoins()
     // 1% chance for gold coin (100)
     else if (randomChance == 100)
     {
-        showGoldCoinReward();
+        fmod->playEffect("gold02.ogg");
+        showGoldCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 1000;
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
         flashShards();
@@ -882,11 +858,11 @@ void ZenGardenLayer::displayRequirementSprite()
     {
         auto item = static_cast<CCNode *>(children->objectAtIndex(i));
         int pos = -1;
-    if (auto mi = typeinfo_cast<CCMenuItem *>(item))
+        if (auto mi = typeinfo_cast<CCMenuItem *>(item))
         {
             pos = mi->getTag();
         }
-        if (pos < 0 || pos >= 8)
+        if (pos < 0 || pos >= 32)
             continue;
 
         // Remove existing per-item overlays
@@ -1014,7 +990,8 @@ void ZenGardenLayer::handlePlayerGrowth()
         // Show message
         std::string playerName = Mod::get()->getSavedValue<std::string>(
             "player_name_" + std::to_string(m_activePos), "");
-        if (playerName.empty()) playerName = "Player";
+        if (playerName.empty())
+            playerName = "Player";
         std::string message = playerName + " grew to maturity level " + std::to_string(m_maturityLevel) + "!";
         FLAlertLayer::create(
             "Level Up!",
@@ -1057,10 +1034,11 @@ void ZenGardenLayer::displayOrbCooldownMessage()
     std::string playerName;
     if (m_activePos >= 0)
         playerName = Mod::get()->getSavedValue<std::string>("player_name_" + std::to_string(m_activePos), "");
-    if (playerName.empty()) playerName = "Player";
+    if (playerName.empty())
+        playerName = "Player";
 
     log::debug("Feeding Cooldown: {}", message);
-    Notification::create(playerName + ": " + message, NotificationIcon::Loading, 1.f)->show();
+    Notification::create(playerName + " is on feeding cooldown", NotificationIcon::Loading, 1.f)->show();
 }
 
 void ZenGardenLayer::update(float dt)
@@ -1107,7 +1085,7 @@ void ZenGardenLayer::update(float dt)
                 int pos = -1;
                 if (auto mi = typeinfo_cast<CCMenuItem *>(item))
                     pos = mi->getTag();
-                if (pos < 0)
+                if (pos < 0 || pos >= 32)
                     continue;
                 int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
                 if (perMaturity == 0)
@@ -1209,7 +1187,14 @@ void ZenGardenLayer::confirmResetProgress()
         while (std::getline(ss, token, ','))
         {
             int pos = -1;
-            if (pos >= 0 && pos < 8)
+            if (!token.empty())
+            {
+                char *endp = nullptr;
+                long v = std::strtol(token.c_str(), &endp, 10);
+                if (endp && *endp == '\0')
+                    pos = static_cast<int>(v);
+            }
+            if (pos >= 0 && pos < 32)
             {
                 Mod::get()->setSavedValue<std::string>("player_" + std::to_string(pos), "");
                 Mod::get()->setSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
@@ -1276,10 +1261,12 @@ CCArray *ZenGardenLayer::getOccupiedPositions()
         while (std::getline(ss, token, ','))
         {
             int pos = -1;
-            if (!token.empty()) {
-                char* endp = nullptr;
+            if (!token.empty())
+            {
+                char *endp = nullptr;
                 long v = std::strtol(token.c_str(), &endp, 10);
-                if (endp && *endp == '\0') pos = static_cast<int>(v);
+                if (endp && *endp == '\0')
+                    pos = static_cast<int>(v);
             }
             if (pos >= 0)
                 positions->addObject(CCInteger::create(pos));
@@ -1295,9 +1282,9 @@ bool ZenGardenLayer::addRandomSimplePlayer()
     // Get occupied positions
     auto occupiedPositions = getOccupiedPositions();
 
-    // Find the first free position (1-8)
+    // Find the first free position (0-31)
     int freePosition = -1;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 32; i++)
     {
         bool isOccupied = false;
         for (int j = 0; j < occupiedPositions->count(); j++)
@@ -1532,7 +1519,9 @@ void ZenGardenLayer::displayOrbCooldownMessageForPos(int pos)
     // Prefix with this player's name and include remaining seconds
     std::string playerName = Mod::get()->getSavedValue<std::string>(
         "player_name_" + std::to_string(pos), "");
-    if (playerName.empty()) playerName = "Player";
+    if (playerName.empty())
+        playerName = "Player";
     Notification::create(playerName + ": Please wait " + std::to_string(secondsRemaining) + " seconds.",
-        NotificationIcon::Loading, 1.f)->show();
+                         NotificationIcon::Loading, 1.f)
+        ->show();
 }
