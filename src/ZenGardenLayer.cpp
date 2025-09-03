@@ -468,16 +468,20 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
         {
             std::string message;
             if (maturity < 1)
-                message = "Baby needs orbs.";
+                message = "needs orbs.";
             else if (maturity == 1)
-                message = "Young needs stars.";
+                message = "needs stars.";
             else if (maturity == 2)
-                message = "Teen needs moons.";
+                message = "needs moons.";
             else if (maturity < 5)
-                message = "Adult/Elder need diamonds.";
+                message = "needs diamonds.";
             else
                 message = "Player fully mature.";
-            Notification::create("Wrong Food: " + message, NotificationIcon::Warning, 1.f)->show();
+            // Replace generic prefix with the player's given name
+            std::string playerName = Mod::get()->getSavedValue<std::string>(
+                "player_name_" + std::to_string(clickedPos), "");
+            if (playerName.empty()) playerName = "Player";
+            Notification::create(playerName + " " + message, NotificationIcon::Warning, 1.f)->show();
         }
 
         if (validFeed)
@@ -1008,7 +1012,10 @@ void ZenGardenLayer::handlePlayerGrowth()
         updatePlayerMaturityVisuals();
 
         // Show message
-        std::string message = "Your player grew to maturity level " + std::to_string(m_maturityLevel) + "!";
+        std::string playerName = Mod::get()->getSavedValue<std::string>(
+            "player_name_" + std::to_string(m_activePos), "");
+        if (playerName.empty()) playerName = "Player";
+        std::string message = playerName + " grew to maturity level " + std::to_string(m_maturityLevel) + "!";
         FLAlertLayer::create(
             "Level Up!",
             message,
@@ -1046,9 +1053,14 @@ void ZenGardenLayer::displayOrbCooldownMessage()
     int secondsRemaining = static_cast<int>(remainingTime > 0 ? remainingTime : 0);
 
     std::string message = "Please wait " + std::to_string(secondsRemaining) + " seconds.";
+    // Prefix with active player's name if available
+    std::string playerName;
+    if (m_activePos >= 0)
+        playerName = Mod::get()->getSavedValue<std::string>("player_name_" + std::to_string(m_activePos), "");
+    if (playerName.empty()) playerName = "Player";
 
     log::debug("Feeding Cooldown: {}", message);
-    Notification::create("Feeding Cooldown: " + message, NotificationIcon::Loading, 1.f)->show();
+    Notification::create(playerName + ": " + message, NotificationIcon::Loading, 1.f)->show();
 }
 
 void ZenGardenLayer::update(float dt)
@@ -1517,5 +1529,10 @@ void ZenGardenLayer::displayOrbCooldownMessageForPos(int pos)
     int64_t remainingTime = 17 - timeSinceLastFeed;
     int secondsRemaining = static_cast<int>(remainingTime > 0 ? remainingTime : 0);
     log::debug("Feeding Cooldown (pos {}): {} seconds remaining", pos, secondsRemaining);
-    Notification::create("On feeding Cooldown", NotificationIcon::Loading, 1.f)->show();
+    // Prefix with this player's name and include remaining seconds
+    std::string playerName = Mod::get()->getSavedValue<std::string>(
+        "player_name_" + std::to_string(pos), "");
+    if (playerName.empty()) playerName = "Player";
+    Notification::create(playerName + ": Please wait " + std::to_string(secondsRemaining) + " seconds.",
+        NotificationIcon::Loading, 1.f)->show();
 }
