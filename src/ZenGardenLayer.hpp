@@ -44,19 +44,23 @@ public:
     void cheat();
     void keyDown(enumKeyCodes key) override;
 
+    // SimplePlayer management
+    static bool addRandomSimplePlayer();
+    static CCArray* getOccupiedPositions();
+
     int m_selectedItem = 0;
-    int m_starCount = 2;
-    int m_moonCount = 3;
-    int m_diamondCount = 4;
-    int m_diamondShards = 0;
+    static int m_starCount;
+    static int m_moonCount;
+    static int m_diamondCount;
+    static int m_diamondShards;
     CCSprite *m_orbsHoverSprite;
     CCSprite *m_starsHoverSprite;
     CCSprite *m_moonsHoverSprite;
     CCSprite *m_diamondsHoverSprite;
-    CCLabelBMFont *m_starsLabel;
-    CCLabelBMFont *m_moonsLabel;
-    CCLabelBMFont *m_diamondsLabel;
-    CCLabelBMFont *m_diamondShardsLabel;
+    static CCLabelBMFont *m_starsLabel;
+    static CCLabelBMFont *m_moonsLabel;
+    static CCLabelBMFont *m_diamondsLabel;
+    static CCLabelBMFont *m_diamondShardsLabel;
     CCSprite *m_diamondCurrencyIcon;
     SimplePlayer *m_simplePlayer;
     

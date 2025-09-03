@@ -18,6 +18,16 @@ struct SaveData
 
 SaveData saveData;
 
+// Initialize static variables
+int ZenGardenLayer::m_starCount = 2;
+int ZenGardenLayer::m_moonCount = 3;
+int ZenGardenLayer::m_diamondCount = 4;
+int ZenGardenLayer::m_diamondShards = 0;
+CCLabelBMFont *ZenGardenLayer::m_starsLabel = nullptr;
+CCLabelBMFont *ZenGardenLayer::m_moonsLabel = nullptr;
+CCLabelBMFont *ZenGardenLayer::m_diamondsLabel = nullptr;
+CCLabelBMFont *ZenGardenLayer::m_diamondShardsLabel = nullptr;
+
 template <>
 struct matjson::Serialize<SaveData>
 {
@@ -67,6 +77,7 @@ void ZenGardenLayer::onBack(CCObject *sender)
     Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
     Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
     Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
+
     CCDirector::sharedDirector()->popScene();
 }
 
@@ -78,9 +89,9 @@ void ZenGardenLayer::onShop(CCObject *sender)
     Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
 
     auto scene = CCScene::create();
-	scene->addChild(ZenGardenShopLayer::create());
+    scene->addChild(ZenGardenShopLayer::create());
 
-	CCDirector::get()->pushScene(CCTransitionFade::create(.5f, scene));
+    CCDirector::get()->pushScene(CCTransitionMoveInT::create(.5f, scene));
 }
 
 void ZenGardenLayer::keyBackClicked()
@@ -165,9 +176,8 @@ bool ZenGardenLayer::init()
     int getShards = GameStatsManager::sharedState()->getStat("29");
     ZenGardenLayer::m_diamondShards = Mod::get()->setSavedValue<int>("money", getShards);
 
-
     this->scheduleUpdate();
-    
+
     // Enable keyboard input for cheat functionality
     this->setKeyboardEnabled(true);
 
@@ -211,9 +221,8 @@ bool ZenGardenLayer::init()
     auto toShop = CCMenuItemSpriteExtra::create(
         CCSprite::createWithSpriteFrameName("shopRope_001.png"),
         this,
-        menu_selector(ZenGardenLayer::onShop)
-    );
-    
+        menu_selector(ZenGardenLayer::onShop));
+
     toShop->setPosition((windowSize.width / 2) - 120, (windowSize.height / 2) - 10);
     toShop->setID("shop-button");
 
@@ -345,18 +354,18 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_diamondShardsLabel->setScale(0.65f);
     ZenGardenLayer::m_diamondShardsLabel->setID("money-count");
     ZenGardenLayer::m_diamondShardsLabel->setPosition(windowSize.width / 2, windowSize.height - 300);
-    
+
     // diamond icon next to the label
     auto diamondIcon = CCSprite::createWithSpriteFrameName("currencyDiamondIcon_001.png");
     diamondIcon->setScale(0.8f);
     diamondIcon->setID("diamond-currency-icon");
-    
+
     float labelWidth = m_diamondShardsLabel->getContentWidth() * m_diamondShardsLabel->getScale();
     diamondIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
 
     this->addChild(diamondIcon);
     this->addChild(ZenGardenLayer::m_diamondShardsLabel);
-    
+
     // Store the diamond icon as a member variable to update its position later
     m_diamondCurrencyIcon = diamondIcon;
 
@@ -401,7 +410,7 @@ bool ZenGardenLayer::init()
 
     this->addChild(iconBackgrounds);
 
-    // Create a SimplePlayer and place it in the first box
+    // Create the main SimplePlayer in the first box
     ZenGardenLayer::m_simplePlayer = SimplePlayer::create(1); // Create with cube icon
     if (ZenGardenLayer::m_simplePlayer)
     {
@@ -413,53 +422,106 @@ bool ZenGardenLayer::init()
         float playerScale = 0.5f + (ZenGardenLayer::m_maturityLevel * 0.06f);
         playerScale = std::min(playerScale, 0.8f); // Cap at 0.8f
 
-        ZenGardenLayer::m_simplePlayer->setScale(playerScale);
-        ZenGardenLayer::m_simplePlayer->setID("simple-player-1");
-        ZenGardenLayer::m_simplePlayer->setZOrder(-1);
+        // Load all saved SimplePlayers from the purchased ones
+        std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+        if (!positionsStr.empty())
+        {
+            std::stringstream ss(positionsStr);
+            std::string token;
 
-        // click the simple player
-        auto simplePlayerButton = CCMenuItemSpriteExtra::create(
-            ZenGardenLayer::m_simplePlayer,
+            while (std::getline(ss, token, ','))
+            {
+                int pos = std::stoi(token);
+                if (pos >= 0 && pos < 8)
+                { // Valid position
+                    std::string key = "player_" + std::to_string(pos);
+                    std::string playerInfo = Mod::get()->getSavedValue<std::string>(key, "");
+
+                    if (!playerInfo.empty())
+                    {
+                        // Parse player info: icon,color1,color2
+                        std::stringstream playerSS(playerInfo);
+                        std::string infoToken;
+                        std::vector<int> values;
+
+                        while (std::getline(playerSS, infoToken, ','))
+                        {
+                            values.push_back(std::stoi(infoToken));
+                        }
+
+                        if (values.size() >= 3)
+                        {
+                            // Create a SimplePlayer at the correct position
+                            auto player = SimplePlayer::create(values[0]);
+                            player->updatePlayerFrame(values[1], static_cast<IconType>(values[2]));
+
+                            // Position
+                            int playerX = (windowSize.width / 2) + xPositions[pos];
+                            int playerY = (windowSize.height / 2) + 75; // Top row
+                            if (pos >= 4)
+                            {
+                                playerY -= 90; // Bottom row
+                            }
+
+                            player->setPosition(ccp(playerX, playerY));
+                            player->setScale(0.6f);
+                            player->setID("purchased-player-" + std::to_string(pos));
+                            this->addChild(player);
+                        }
+                    }
+                }
+            }
+
+            ZenGardenLayer::m_simplePlayer->setScale(playerScale);
+            ZenGardenLayer::m_simplePlayer->setID("simple-player-1");
+            ZenGardenLayer::m_simplePlayer->setZOrder(-1);
+
+            // click the simple player
+            auto simplePlayerButton = CCMenuItemSpriteExtra::create(
+                ZenGardenLayer::m_simplePlayer,
+                this,
+                menu_selector(ZenGardenLayer::onSimplePlayerClicked));
+
+            simplePlayerButton->setID("simple-player-button");
+            simplePlayerButton->setContentSize({40.f, 40.f});
+            ZenGardenLayer::m_simplePlayer->setPosition({simplePlayerButton->getContentSize().width / 2, simplePlayerButton->getContentSize().height / 2});
+
+            // menu for the SimplePlayer
+            auto simplePlayerMenu = CCMenu::create();
+            simplePlayerMenu->addChild(simplePlayerButton);
+            simplePlayerMenu->setPosition(ccp(firstBoxX, firstBoxY));
+            simplePlayerMenu->setID("simple-player-menu");
+
+            this->addChild(simplePlayerMenu);
+
+            // Add requirement indicator
+            displayRequirementSprite();
+        }
+
+        // Create reset progress button at the bottom left of the screen using ButtonSprite
+        auto resetButtonMenu = CCMenu::create();
+        resetButtonMenu->setID("reset-button-menu");
+
+        // Use ButtonSprite to create the reset button with better visual styling
+        auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
+
+        auto resetButton = CCMenuItemSpriteExtra::create(
+            resetButtonSprite,
             this,
-            menu_selector(ZenGardenLayer::onSimplePlayerClicked));
+            menu_selector(ZenGardenLayer::onResetProgress));
 
-        simplePlayerButton->setID("simple-player-button");
-        simplePlayerButton->setContentSize({40.f, 40.f});
-        ZenGardenLayer::m_simplePlayer->setPosition({simplePlayerButton->getContentSize().width / 2, simplePlayerButton->getContentSize().height / 2});
+        resetButton->setID("reset-progress-button");
+        resetButtonMenu->addChild(resetButton);
 
-        // menu for the SimplePlayer
-        auto simplePlayerMenu = CCMenu::create();
-        simplePlayerMenu->addChild(simplePlayerButton);
-        simplePlayerMenu->setPosition(ccp(firstBoxX, firstBoxY));
-        simplePlayerMenu->setID("simple-player-menu");
+        // Position at the bottom left corner
+        resetButtonMenu->setPosition(ccp(55, 25));
 
-        this->addChild(simplePlayerMenu);
+        this->addChild(resetButtonMenu);
 
-        // Add requirement indicator
-        displayRequirementSprite();
+        return true;
     }
-
-    // Create reset progress button at the bottom left of the screen using ButtonSprite
-    auto resetButtonMenu = CCMenu::create();
-    resetButtonMenu->setID("reset-button-menu");
-
-    // Use ButtonSprite to create the reset button with better visual styling
-    auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
-
-    auto resetButton = CCMenuItemSpriteExtra::create(
-        resetButtonSprite,
-        this,
-        menu_selector(ZenGardenLayer::onResetProgress));
-
-    resetButton->setID("reset-progress-button");
-    resetButtonMenu->addChild(resetButton);
-
-    // Position at the bottom left corner
-    resetButtonMenu->setPosition(ccp(55, 25));
-
-    this->addChild(resetButtonMenu);
-
-    return true;
+    
+    return false;
 }
 
 void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
@@ -511,7 +573,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             else
             {
                 log::debug("Not Enough Stars");
-                Notification::create("Not Enough Stars", NotificationIcon::Warning, 0.5f)->show();
+                Notification::create("Not Enough Stars", NotificationIcon::Warning, 1.f)->show();
             }
         }
         else if (m_maturityLevel == 2 && ZenGardenLayer::m_selectedItem == 3)
@@ -527,7 +589,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             else
             {
                 log::debug("Not Enough Moons");
-                Notification::create("Not Enough Moons", NotificationIcon::Warning, 0.5f)->show();
+                Notification::create("Not Enough Moons", NotificationIcon::Warning, 1.)->show();
             }
         }
         else if (m_maturityLevel >= 3 && m_maturityLevel < 5 && ZenGardenLayer::m_selectedItem == 4)
@@ -542,7 +604,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             }
             else
             {
-                Notification::create("Not Enough Diamonds", NotificationIcon::Warning, 0.5f)->show();
+                Notification::create("Not Enough Diamonds", NotificationIcon::Warning, 1.f)->show();
             }
         }
         else
@@ -571,7 +633,7 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             }
 
             log::debug("Wrong Food: {}", message);
-            Notification::create("Wrong Food: " + message, NotificationIcon::Warning, 0.5f)->show();
+            Notification::create("Wrong Food: " + message, NotificationIcon::Warning, 1.f)->show();
         }
 
         // If feed was valid, check for coin rewards
@@ -601,7 +663,8 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
             playerInfo->show();
         }
     }
-}
+};
+
 void ZenGardenLayer::showBronzeCoinReward()
 {
     // Create a new coin sprite each time
@@ -793,7 +856,7 @@ void ZenGardenLayer::flashShards()
         return;
 
     ZenGardenLayer::m_diamondShardsLabel->stopAllActions();
-    ZenGardenLayer::m_diamondShardsLabel->setColor({ 0, 225, 255 });
+    ZenGardenLayer::m_diamondShardsLabel->setColor({0, 225, 255});
     auto fadeToWhite = CCTintTo::create(2.0f, 255, 255, 255);
 
     ZenGardenLayer::m_diamondShardsLabel->runAction(fadeToWhite);
@@ -825,12 +888,6 @@ void ZenGardenLayer::displayRequirementSprite()
     {
         m_requirementLabel->removeFromParent();
         m_requirementLabel = nullptr;
-    }
-
-    // Don't show anything if fully mature (level 5)
-    if (m_maturityLevel >= 5)
-    {
-        return;
     }
 
     // Create appropriate sprite based on maturity level
@@ -956,7 +1013,7 @@ void ZenGardenLayer::displayOrbCooldownMessage()
     std::string message = "Please wait " + std::to_string(secondsRemaining) + " seconds.";
 
     log::debug("Feeding Cooldown: {}", message);
-    Notification::create("Feeding Cooldown: " + message, NotificationIcon::Loading, 0.5f)->show();
+    Notification::create("Feeding Cooldown: " + message, NotificationIcon::Loading, 1.f)->show();
 }
 
 void ZenGardenLayer::update(float dt)
@@ -984,9 +1041,10 @@ void ZenGardenLayer::update(float dt)
     ZenGardenLayer::m_moonsLabel->setString(std::to_string(ZenGardenLayer::m_moonCount).c_str(), true);
     ZenGardenLayer::m_diamondsLabel->setString(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), true);
     ZenGardenLayer::m_diamondShardsLabel->setString((std::to_string(ZenGardenLayer::m_diamondShards)).c_str(), true);
-    
+
     // Update diamond currency icon position based on label width
-    if (m_diamondCurrencyIcon && m_diamondShardsLabel) {
+    if (m_diamondCurrencyIcon && m_diamondShardsLabel)
+    {
         float labelWidth = m_diamondShardsLabel->getContentWidth() * m_diamondShardsLabel->getScale();
         m_diamondCurrencyIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
     }
@@ -1000,23 +1058,26 @@ void ZenGardenLayer::update(float dt)
 
 void ZenGardenLayer::onResetProgress(CCObject *sender)
 {
-    if (m_diamondShards >= 1000) {
-    // Show confirmation dialog using Geode's createQuickPopup
-    geode::createQuickPopup(
-        "Reset Progress",
-        "Are you sure you want to reset <cr>ALL</c> progress?\n\nThis will reset your maturity level, resources, and all player stats.\nThis will cost <cc>1000 Diamond Shards</c> to reset\n<cr>This action cannot be undone!</c>",
-        "Cancel", "Reset",
-        [this](auto, bool btn2)
-        {
-            if (btn2)
+    if (m_diamondShards >= 1000)
+    {
+        // Show confirmation dialog using Geode's createQuickPopup
+        geode::createQuickPopup(
+            "Reset Progress",
+            "Are you sure you want to reset <cr>ALL</c> progress?\n\nThis will reset your maturity level, resources, and all player stats.\nThis will cost <cc>1000 Diamond Shards</c> to reset\n<cr>This action cannot be undone!</c>",
+            "Cancel", "Reset",
+            [this](auto, bool btn2)
             {
-                m_diamondShards -= 1000;
-                GameStatsManager::sharedState()->setStat("29", m_diamondShards);
-                this->confirmResetProgress();
-            }
-        });
-    } else {
-        Notification::create("You don't have enough to reset! Required 1000 Diamond Shards", NotificationIcon::Error, 0.5f)->show();
+                if (btn2)
+                {
+                    m_diamondShards -= 1000;
+                    GameStatsManager::sharedState()->setStat("29", m_diamondShards);
+                    this->confirmResetProgress();
+                }
+            });
+    }
+    else
+    {
+        Notification::create("You don't have enough to reset! Required 1000 Diamond Shards", NotificationIcon::Error, 1.f)->show();
     }
 }
 
@@ -1040,15 +1101,6 @@ void ZenGardenLayer::confirmResetProgress()
     m_diamondCount = 4;
     m_diamondShards = GameStatsManager::sharedState()->getStat("29");
 
-    // Update player scale based on new maturity level
-    if (m_simplePlayer)
-    {
-        m_simplePlayer->setScale(0.5f); // Base scale for baby player
-    }
-
-    // Update visuals
-    displayRequirementSprite();
-
     // Show confirmation message
     FLAlertLayer::create(
         "Progress Reset",
@@ -1057,10 +1109,10 @@ void ZenGardenLayer::confirmResetProgress()
         ->show();
 }
 
-
 // I accidentally wipped my diamond shards so this is needed for me xD
 // also using this is considered cheating
-void ZenGardenLayer::cheat() {
+void ZenGardenLayer::cheat()
+{
 
     ZenGardenLayer::m_diamondShards += 1000;
     GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
@@ -1068,11 +1120,98 @@ void ZenGardenLayer::cheat() {
     flashShards();
 }
 
-void ZenGardenLayer::keyDown(enumKeyCodes key) {
+// Get an array of positions that currently have SimplePlayer icons
+CCArray *ZenGardenLayer::getOccupiedPositions()
+{
+    auto positions = CCArray::create();
+
+    // Get saved player positions
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    if (!positionsStr.empty())
+    {
+        std::stringstream ss(positionsStr);
+        std::string token;
+
+        while (std::getline(ss, token, ','))
+        {
+            int pos = std::stoi(token);
+            positions->addObject(CCInteger::create(pos));
+        }
+    }
+
+    return positions;
+}
+
+// Add a random SimplePlayer to the garden at the first free position
+bool ZenGardenLayer::addRandomSimplePlayer()
+{
+    // Get occupied positions
+    auto occupiedPositions = getOccupiedPositions();
+
+    // Find the first free position (1-8)
+    int freePosition = -1;
+    for (int i = 0; i < 8; i++)
+    {
+        bool isOccupied = false;
+        for (int j = 0; j < occupiedPositions->count(); j++)
+        {
+            auto pos = static_cast<CCInteger *>(occupiedPositions->objectAtIndex(j))->getValue();
+            if (pos == i)
+            {
+                isOccupied = true;
+                break;
+            }
+        }
+
+        if (!isOccupied)
+        {
+            freePosition = i;
+            break;
+        }
+    }
+
+    // No free positions
+    if (freePosition == -1)
+    {
+        return false;
+    }
+
+    // Generate random colors (1-42 for cube, 43-84 for ship, etc.)
+    int randomIcon = rand() % 42 + 1;
+    int randomColor1 = rand() % 41 + 1;
+    int randomColor2 = rand() % 41 + 1;
+
+    // Save the new player info
+    std::string key = "player_" + std::to_string(freePosition);
+    std::string playerInfo = std::to_string(randomIcon) + "," +
+                             std::to_string(randomColor1) + "," +
+                             std::to_string(randomColor2);
+    Mod::get()->setSavedValue<std::string>(key, playerInfo);
+
+    // Save the new position to the list of occupied positions
+    occupiedPositions->addObject(CCInteger::create(freePosition));
+    std::string positionsStr = "";
+    for (int i = 0; i < occupiedPositions->count(); i++)
+    {
+        auto pos = static_cast<CCInteger *>(occupiedPositions->objectAtIndex(i))->getValue();
+        positionsStr += std::to_string(pos);
+        if (i < occupiedPositions->count() - 1)
+        {
+            positionsStr += ",";
+        }
+    }
+    Mod::get()->setSavedValue<std::string>("player_positions", positionsStr);
+
+    return true;
+}
+
+void ZenGardenLayer::keyDown(enumKeyCodes key)
+{
     // Check for the "J" key press (74 is the key code for 'J')
-    if (key == KEY_J) {
+    if (key == KEY_J)
+    {
         cheat();
     }
-    
+
     CCLayer::keyDown(key);
 }
