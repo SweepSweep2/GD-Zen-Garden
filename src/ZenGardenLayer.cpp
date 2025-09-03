@@ -1266,11 +1266,7 @@ void ZenGardenLayer::handlePlayerGrowth()
         if (playerName.empty())
             playerName = "Player";
         std::string message = playerName + " grew to maturity level " + std::to_string(m_maturityLevel) + "!";
-        FLAlertLayer::create(
-            "Level Up!",
-            message,
-            "OK")
-            ->show();
+        Notification::create(message, NotificationIcon::Info, 1.f)->show();
     }
 }
 
