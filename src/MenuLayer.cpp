@@ -41,6 +41,6 @@ class $modify(ZenGardenMenuLayer, MenuLayer)
 		auto scene = CCScene::create();
 		scene->addChild(ZenGardenLayer::create());
 
-	CCDirector::get()->pushScene(CCTransitionMoveInR::create(.5f, scene));
+		CCDirector::get()->pushScene(CCTransitionFade::create(.5f, scene));
 	}
 };

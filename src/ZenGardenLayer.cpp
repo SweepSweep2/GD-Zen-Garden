@@ -768,6 +768,10 @@ void ZenGardenLayer::sellPlayerAtPos(int pos)
     int maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
     int payout = 750 + (200 * maturity);
 
+    // Capture the player's name BEFORE clearing any saved data
+    std::string soldPlayerName = Mod::get()->getSavedValue<std::string>(
+        "player_name_" + std::to_string(pos), "");
+
     // Add to shards (money)
     ZenGardenLayer::m_diamondShards += payout;
     GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
@@ -844,18 +848,15 @@ void ZenGardenLayer::sellPlayerAtPos(int pos)
         m_activePos = -1;
         m_simplePlayer = nullptr;
     }
-    
+
     auto fmod = FMODAudioEngine::sharedEngine();
     // @geode-ignore(unknown-resource)
     fmod->playEffect("chest08.ogg");
-    
+
     // Notify
-    // note: still need to fix the playername for this one
-    std::string playerName = Mod::get()->getSavedValue<std::string>(
-        "player_name_" + std::to_string(m_activePos), "");
-    if (playerName.empty())
-        playerName = "Player";
-    Notification::create("Sold " + playerName + " for " + std::to_string(payout), NotificationIcon::Success, 1.f)->show();
+    if (soldPlayerName.empty())
+        soldPlayerName = "Player";
+    Notification::create("Sold " + soldPlayerName + " for " + std::to_string(payout), NotificationIcon::Success, 1.f)->show();
 
     // Refresh overlays
     displayRequirementSprite();
@@ -877,7 +878,7 @@ void ZenGardenLayer::showBronzeCoinReward(int pos)
     int rowOffsets[4] = {75, 25, -25, -75};
     int baseY = rowOffsets[(row < 4 ? row : 3)];
     int coinX = (windowSize.width / 2) + xPositions[col];
-    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
+    int coinY = (windowSize.height / 2) + baseY; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
@@ -919,7 +920,7 @@ void ZenGardenLayer::showSilverCoinReward(int pos)
     int rowOffsets[4] = {75, 25, -25, -75};
     int baseY = rowOffsets[(row < 4 ? row : 3)];
     int coinX = (windowSize.width / 2) + xPositions[col];
-    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
+    int coinY = (windowSize.height / 2) + baseY; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
@@ -960,7 +961,7 @@ void ZenGardenLayer::showGoldCoinReward(int pos)
     int rowOffsets[4] = {75, 25, -25, -75};
     int baseY = rowOffsets[(row < 4 ? row : 3)];
     int coinX = (windowSize.width / 2) + xPositions[col];
-    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
+    int coinY = (windowSize.height / 2) + baseY; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
