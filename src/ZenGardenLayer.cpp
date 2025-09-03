@@ -2,171 +2,34 @@
 #include "ZenGardenShopLayer.hpp"
 #include <Geode/Geode.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
+#include <Geode/binding/GameManager.hpp>
 #include <Geode/ui/Notification.hpp>
 #include <chrono>
 #include <cstdlib>
-#include <ctime>
+#include <vector>
+#include <sstream>
 
-struct SaveData
-{
-    int stars;
-    int moons;
-    int diamonds;
-    int money;
-    long long timeSinceLastLoad;
-};
-
-SaveData saveData;
-
-// Initialize static variables
-int ZenGardenLayer::m_starCount = 2;
-int ZenGardenLayer::m_moonCount = 3;
-int ZenGardenLayer::m_diamondCount = 4;
+// Static member definitions
+int ZenGardenLayer::m_starCount = 0;
+int ZenGardenLayer::m_moonCount = 0;
+int ZenGardenLayer::m_diamondCount = 0;
 int ZenGardenLayer::m_diamondShards = 0;
 CCLabelBMFont *ZenGardenLayer::m_starsLabel = nullptr;
 CCLabelBMFont *ZenGardenLayer::m_moonsLabel = nullptr;
 CCLabelBMFont *ZenGardenLayer::m_diamondsLabel = nullptr;
 CCLabelBMFont *ZenGardenLayer::m_diamondShardsLabel = nullptr;
 
-template <>
-struct matjson::Serialize<SaveData>
-{
-    static SaveData from_json(matjson::Value const &value)
-    {
-        SaveData data;
-
-        data.stars = value["stars"].as<int>().unwrapOr(0);
-        data.moons = value["moons"].as<int>().unwrapOr(0);
-        data.diamonds = value["diamonds"].as<int>().unwrapOr(0);
-        data.money = value["money"].as<int>().unwrapOr(0);
-        data.timeSinceLastLoad = value["timeSinceLastLoad"].as<long long>().unwrapOr(0);
-
-        return data;
-    }
-
-    static matjson::Value to_json(SaveData const &value)
-    {
-        auto obj = matjson::makeObject(
-            {{"stars", value.stars},
-             {"moons", value.moons},
-             {"diamonds", value.diamonds},
-             {"money", value.money},
-             {"timeSinceLastLoad", value.timeSinceLastLoad}});
-
-        return obj;
-    }
-};
-
 ZenGardenLayer *ZenGardenLayer::create()
 {
-    auto zenGardenLayer = new ZenGardenLayer();
-
-    if (zenGardenLayer && zenGardenLayer->init())
+    auto ret = new ZenGardenLayer();
+    if (ret && ret->init())
     {
-        zenGardenLayer->autorelease();
-        return zenGardenLayer;
+        ret->autorelease();
+        return ret;
     }
-
-    CC_SAFE_DELETE(zenGardenLayer);
+    CC_SAFE_DELETE(ret);
     return nullptr;
 }
-
-void ZenGardenLayer::onBack(CCObject *sender)
-{
-    Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
-    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
-    Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
-    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
-
-    CCDirector::sharedDirector()->popScene();
-}
-
-void ZenGardenLayer::onShop(CCObject *sender)
-{
-    Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
-    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
-    Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
-    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
-
-    auto scene = CCScene::create();
-    scene->addChild(ZenGardenShopLayer::create());
-
-    CCDirector::get()->pushScene(CCTransitionMoveInT::create(.5f, scene));
-}
-
-void ZenGardenLayer::keyBackClicked()
-{
-    onBack(nullptr);
-}
-
-void ZenGardenLayer::onFeedOrbs(CCObject *sender)
-{
-    if (ZenGardenLayer::m_selectedItem != 1)
-    {
-        ZenGardenLayer::m_selectedItem = 1;
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(true);
-        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
-    }
-    else
-    {
-        ZenGardenLayer::m_selectedItem = 0;
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
-    }
-}
-
-void ZenGardenLayer::onFeedStars(CCObject *sender)
-{
-    if (ZenGardenLayer::m_selectedItem != 2 && ZenGardenLayer::m_starCount > 0)
-    {
-        ZenGardenLayer::m_selectedItem = 2;
-        ZenGardenLayer::m_starsHoverSprite->setVisible(true);
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
-    }
-    else
-    {
-        ZenGardenLayer::m_selectedItem = 0;
-        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
-    }
-}
-
-void ZenGardenLayer::onFeedMoons(CCObject *sender)
-{
-    if (ZenGardenLayer::m_selectedItem != 3 && ZenGardenLayer::m_moonCount > 0)
-    {
-        ZenGardenLayer::m_selectedItem = 3;
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(true);
-        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
-    }
-    else
-    {
-        ZenGardenLayer::m_selectedItem = 0;
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
-    }
-}
-
-void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
-{
-    if (ZenGardenLayer::m_selectedItem != 4 && ZenGardenLayer::m_diamondCount > 0)
-    {
-        ZenGardenLayer::m_selectedItem = 4;
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(true);
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
-    }
-    else
-    {
-        ZenGardenLayer::m_selectedItem = 0;
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
-    }
-}
-
 bool ZenGardenLayer::init()
 {
     if (!CCLayer::init())
@@ -178,7 +41,6 @@ bool ZenGardenLayer::init()
 
     this->scheduleUpdate();
 
-    // Enable keyboard input for cheat functionality
     this->setKeyboardEnabled(true);
 
     this->setID("zen-garden");
@@ -191,16 +53,15 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds");
     ZenGardenLayer::m_diamondShards = Mod::get()->getSavedValue<int>("money");
 
-    // Initialize maturity system variables
-    ZenGardenLayer::m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
-    ZenGardenLayer::m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed", 0);
-    ZenGardenLayer::m_lastOrbFeedTime = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed", 0);
+    // Initialize maturity system variables (used for the currently selected player)
+    ZenGardenLayer::m_maturityLevel = 0;
+    ZenGardenLayer::m_orbsFeeded = 0;
+    ZenGardenLayer::m_lastOrbFeedTime = 0;
 
     // Seed random number generator
     srand(static_cast<unsigned int>(time(nullptr)));
 
     auto background = createLayerBG();
-
     this->addChild(background, -5);
 
     auto exitMenu = CCMenu::create();
@@ -225,12 +86,10 @@ bool ZenGardenLayer::init()
 
     toShop->setPosition((windowSize.width / 2) - 120, (windowSize.height / 2) - 10);
     toShop->setID("shop-button");
-
     exitMenu->addChild(toShop);
 
     auto topBarMenu = CCMenu::create();
     topBarMenu->setID("top-bar-menu");
-
     this->addChild(topBarMenu);
 
     auto topBarBG = CCScale9Sprite::create("square02b_001.png");
@@ -238,7 +97,6 @@ bool ZenGardenLayer::init()
     topBarBG->setPosition((windowSize.width / -2) + 84.5, (windowSize.height / 2) - 25);
     topBarBG->setID("top-bar-bg");
     topBarBG->setColor({0, 36, 91});
-
     topBarMenu->addChild(topBarBG);
 
     auto feedOrbsButton = CCMenuItemSpriteExtra::create(
@@ -249,16 +107,14 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedOrbs));
-
     feedOrbsButton->setID("feed-orbs");
     feedOrbsButton->setPosition((windowSize.width / -2) + 25.5, (windowSize.height / 2) - 25);
-
     topBarMenu->addChild(feedOrbsButton);
 
     ZenGardenLayer::m_orbsHoverSprite = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
     ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
     ZenGardenLayer::m_orbsHoverSprite->setID("orbs-hover");
-
+    ZenGardenLayer::m_orbsHoverSprite->setZOrder(10);
     this->addChild(ZenGardenLayer::m_orbsHoverSprite);
 
     auto orbCount = CCLabelBMFont::create("8", "bigFont.fnt");
@@ -266,7 +122,6 @@ bool ZenGardenLayer::init()
     orbCount->setPosition((windowSize.width / -2) + 35.5, (windowSize.height / 2) - 34);
     orbCount->setRotation(90.0f);
     orbCount->setScale(0.5f);
-
     topBarMenu->addChild(orbCount);
 
     auto feedStarsButton = CCMenuItemSpriteExtra::create(
@@ -277,23 +132,20 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedStars));
-
     feedStarsButton->setID("feed-stars");
     feedStarsButton->setPosition((windowSize.width / -2) + 65, (windowSize.height / 2) - 25);
-
     topBarMenu->addChild(feedStarsButton);
 
     ZenGardenLayer::m_starsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
     ZenGardenLayer::m_starsHoverSprite->setVisible(false);
     ZenGardenLayer::m_starsHoverSprite->setID("stars-hover");
-
+    ZenGardenLayer::m_starsHoverSprite->setZOrder(10);
     this->addChild(ZenGardenLayer::m_starsHoverSprite);
 
     ZenGardenLayer::m_starsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_starCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_starsLabel->setID("star-count");
     ZenGardenLayer::m_starsLabel->setPosition((windowSize.width / -2) + 75, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_starsLabel->setScale(0.5f);
-
     topBarMenu->addChild(ZenGardenLayer::m_starsLabel);
 
     auto feedMoonsButton = CCMenuItemSpriteExtra::create(
@@ -304,23 +156,20 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedMoons));
-
     feedMoonsButton->setID("feed-moons");
     feedMoonsButton->setPosition((windowSize.width / -2) + 104.5, (windowSize.height / 2) - 25);
-
     topBarMenu->addChild(feedMoonsButton);
 
     ZenGardenLayer::m_moonsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
     ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
     ZenGardenLayer::m_moonsHoverSprite->setID("moons-hover");
-
+    ZenGardenLayer::m_moonsHoverSprite->setZOrder(10);
     this->addChild(ZenGardenLayer::m_moonsHoverSprite);
 
     ZenGardenLayer::m_moonsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_moonCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_moonsLabel->setID("moon-count");
     ZenGardenLayer::m_moonsLabel->setPosition((windowSize.width / -2) + 114.5, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_moonsLabel->setScale(0.5f);
-
     topBarMenu->addChild(ZenGardenLayer::m_moonsLabel);
 
     auto feedDiamondsButton = CCMenuItemSpriteExtra::create(
@@ -331,23 +180,20 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedDiamonds));
-
     feedDiamondsButton->setID("feed-diamonds");
     feedDiamondsButton->setPosition((windowSize.width / -2) + 144, (windowSize.height / 2) - 25);
-
     topBarMenu->addChild(feedDiamondsButton);
 
     ZenGardenLayer::m_diamondsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
     ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     ZenGardenLayer::m_diamondsHoverSprite->setID("diamonds-hover");
-
+    ZenGardenLayer::m_diamondsHoverSprite->setZOrder(10);
     this->addChild(ZenGardenLayer::m_diamondsHoverSprite);
 
     ZenGardenLayer::m_diamondsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_diamondsLabel->setID("diamond-count");
     ZenGardenLayer::m_diamondsLabel->setPosition((windowSize.width / -2) + 154, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_diamondsLabel->setScale(0.5f);
-
     topBarMenu->addChild(ZenGardenLayer::m_diamondsLabel);
 
     ZenGardenLayer::m_diamondShardsLabel = CCLabelBMFont::create("-", "bigFont.fnt");
@@ -355,18 +201,13 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_diamondShardsLabel->setID("money-count");
     ZenGardenLayer::m_diamondShardsLabel->setPosition(windowSize.width / 2, windowSize.height - 300);
 
-    // diamond icon next to the label
     auto diamondIcon = CCSprite::createWithSpriteFrameName("currencyDiamondIcon_001.png");
     diamondIcon->setScale(0.8f);
     diamondIcon->setID("diamond-currency-icon");
-
     float labelWidth = m_diamondShardsLabel->getContentWidth() * m_diamondShardsLabel->getScale();
     diamondIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
-
     this->addChild(diamondIcon);
     this->addChild(ZenGardenLayer::m_diamondShardsLabel);
-
-    // Store the diamond icon as a member variable to update its position later
     m_diamondCurrencyIcon = diamondIcon;
 
     auto iconBackgrounds = CCSpriteBatchNode::create("GJ_button_05.png");
@@ -410,196 +251,212 @@ bool ZenGardenLayer::init()
 
     this->addChild(iconBackgrounds);
 
-    // Create the main SimplePlayer in the first box
-    ZenGardenLayer::m_simplePlayer = SimplePlayer::create(1); // Create with cube icon
-    if (ZenGardenLayer::m_simplePlayer)
+    // Build menu of purchased players
+    auto playersMenu = CCMenu::create();
+    playersMenu->setPosition({0, 0});
+    playersMenu->setID("players-menu");
+    this->addChild(playersMenu);
+
+    // Load all saved SimplePlayers; if none, leave the garden empty
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    bool firstPlayerAssigned = false;
+    if (!positionsStr.empty())
     {
-        // horrible position
-        int firstBoxX = (windowSize.width / 2) + xPositions[0]; // -190 offset
-        int firstBoxY = (windowSize.height / 2) + 75;           // Top row
-
-        // Set scale based on maturity level (0.5 for baby, growing to 0.8 at max level)
-        float playerScale = 0.5f + (ZenGardenLayer::m_maturityLevel * 0.06f);
-        playerScale = std::min(playerScale, 0.8f); // Cap at 0.8f
-
-        // Load all saved SimplePlayers from the purchased ones
-        std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
-        if (!positionsStr.empty())
+        std::stringstream ss(positionsStr);
+        std::string token;
+        while (std::getline(ss, token, ','))
         {
-            std::stringstream ss(positionsStr);
-            std::string token;
+            int pos = -1;
+            if (!token.empty()) {
+                char* endp = nullptr;
+                long v = std::strtol(token.c_str(), &endp, 10);
+                if (endp && *endp == '\0') pos = static_cast<int>(v);
+            }
+            if (pos < 0 || pos >= 8)
+                continue;
 
-            while (std::getline(ss, token, ','))
+            std::string key = "player_" + std::to_string(pos);
+            std::string playerInfo = Mod::get()->getSavedValue<std::string>(key, "");
+            if (playerInfo.empty())
+                continue;
+
+            // icon,color1,color2[,glow]
+            std::stringstream playerSS(playerInfo);
+            std::string infoToken;
+            std::vector<int> values;
+            while (std::getline(playerSS, infoToken, ','))
             {
-                int pos = std::stoi(token);
-                if (pos >= 0 && pos < 8)
-                { // Valid position
-                    std::string key = "player_" + std::to_string(pos);
-                    std::string playerInfo = Mod::get()->getSavedValue<std::string>(key, "");
-
-                    if (!playerInfo.empty())
-                    {
-                        // Parse player info: icon,color1,color2
-                        std::stringstream playerSS(playerInfo);
-                        std::string infoToken;
-                        std::vector<int> values;
-
-                        while (std::getline(playerSS, infoToken, ','))
-                        {
-                            values.push_back(std::stoi(infoToken));
-                        }
-
-                        if (values.size() >= 3)
-                        {
-                            // Create a SimplePlayer at the correct position
-                            auto player = SimplePlayer::create(values[0]);
-                            player->updatePlayerFrame(values[1], static_cast<IconType>(values[2]));
-
-                            // Position
-                            int playerX = (windowSize.width / 2) + xPositions[pos];
-                            int playerY = (windowSize.height / 2) + 75; // Top row
-                            if (pos >= 4)
-                            {
-                                playerY -= 90; // Bottom row
-                            }
-
-                            player->setPosition(ccp(playerX, playerY));
-                            player->setScale(0.6f);
-                            player->setID("purchased-player-" + std::to_string(pos));
-                            this->addChild(player);
-                        }
-                    }
+                if (!infoToken.empty())
+                {
+                    char *endp = nullptr;
+                    long v = std::strtol(infoToken.c_str(), &endp, 10);
+                    if (endp && *endp == '\0')
+                        values.push_back(static_cast<int>(v));
                 }
             }
+            if (values.size() < 3)
+                continue;
 
-            ZenGardenLayer::m_simplePlayer->setScale(playerScale);
-            ZenGardenLayer::m_simplePlayer->setID("simple-player-1");
-            ZenGardenLayer::m_simplePlayer->setZOrder(-1);
+            int iconId = values[0];
+            int color1Idx = values[1];
+            int color2Idx = values[2];
+            bool glow = (values.size() >= 4 ? values[3] != 0 : false);
 
-            // click the simple player
-            auto simplePlayerButton = CCMenuItemSpriteExtra::create(
-                ZenGardenLayer::m_simplePlayer,
+            // Create player and set frame
+            auto playerNode = SimplePlayer::create(1);
+            playerNode->updatePlayerFrame(iconId, static_cast<IconType>(0));
+            // Store iconId on the node so popups can mirror it reliably
+            playerNode->setTag(iconId);
+
+            // Apply colors via GameManager indices
+            auto gm = GameManager::sharedState();
+            ccColor3B c1 = gm->colorForIdx(color1Idx);
+            ccColor3B c2 = gm->colorForIdx(color2Idx);
+            playerNode->setColors(c1, c2);
+
+            // Position
+            int playerX = (windowSize.width / 2) + xPositions[pos];
+            int playerY = (windowSize.height / 2) + 75; // Top row
+            if (pos >= 4)
+                playerY -= 90; // Bottom row
+
+            // Scale by per-player maturity level (default 0)
+            int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+            float playerScale = std::min(0.5f + (perMaturity * 0.06f), 0.8f);
+
+            // Create clickable item
+            auto playerItem = CCMenuItemSpriteExtra::create(
+                playerNode,
                 this,
                 menu_selector(ZenGardenLayer::onSimplePlayerClicked));
+            playerItem->setID("purchased-player-" + std::to_string(pos));
+            playerItem->setTag(pos);
+            playerItem->setPosition(ccp(playerX, playerY));
+            playerNode->setScale(playerScale);
+            playerItem->setContentSize({40.f, 40.f});
+            playerNode->setAnchorPoint(ccp(0.5f, 0.5f));
+            playerNode->setPosition({playerItem->getContentSize().width / 2, playerItem->getContentSize().height / 2});
+            playersMenu->addChild(playerItem);
 
-            simplePlayerButton->setID("simple-player-button");
-            simplePlayerButton->setContentSize({40.f, 40.f});
-            ZenGardenLayer::m_simplePlayer->setPosition({simplePlayerButton->getContentSize().width / 2, simplePlayerButton->getContentSize().height / 2});
-
-            // menu for the SimplePlayer
-            auto simplePlayerMenu = CCMenu::create();
-            simplePlayerMenu->addChild(simplePlayerButton);
-            simplePlayerMenu->setPosition(ccp(firstBoxX, firstBoxY));
-            simplePlayerMenu->setID("simple-player-menu");
-
-            this->addChild(simplePlayerMenu);
-
-            // Add requirement indicator
+            if (!firstPlayerAssigned)
+            {
+                ZenGardenLayer::m_simplePlayer = playerNode;
+                m_activePos = pos;
+                // Load the active player's maturity/orbs state
+                ZenGardenLayer::m_maturityLevel = perMaturity;
+                ZenGardenLayer::m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                ZenGardenLayer::m_lastOrbFeedTime = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+                firstPlayerAssigned = true;
+            }
+        }
+        if (firstPlayerAssigned)
+        {
             displayRequirementSprite();
         }
-
-        // Create reset progress button at the bottom left of the screen using ButtonSprite
-        auto resetButtonMenu = CCMenu::create();
-        resetButtonMenu->setID("reset-button-menu");
-
-        // Use ButtonSprite to create the reset button with better visual styling
-        auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
-
-        auto resetButton = CCMenuItemSpriteExtra::create(
-            resetButtonSprite,
-            this,
-            menu_selector(ZenGardenLayer::onResetProgress));
-
-        resetButton->setID("reset-progress-button");
-        resetButtonMenu->addChild(resetButton);
-
-        // Position at the bottom left corner
-        resetButtonMenu->setPosition(ccp(55, 25));
-
-        this->addChild(resetButtonMenu);
-
-        return true;
     }
-    
-    return false;
+
+    // Create reset progress button at the bottom left of the screen using ButtonSprite
+    auto resetButtonMenu = CCMenu::create();
+    resetButtonMenu->setID("reset-button-menu");
+    auto resetButtonSprite = ButtonSprite::create("Reset", "goldFont.fnt", "GJ_button_06.png", 0.8f);
+    auto resetButton = CCMenuItemSpriteExtra::create(
+        resetButtonSprite,
+        this,
+        menu_selector(ZenGardenLayer::onResetProgress));
+    resetButton->setID("reset-progress-button");
+    resetButtonMenu->addChild(resetButton);
+    resetButtonMenu->setPosition(ccp(55, 25));
+    this->addChild(resetButtonMenu);
+
+    return true;
+}
+
+void ZenGardenLayer::onEnter()
+{
+    CCLayer::onEnter();
+    // Rebuild the garden when re-entering the layer (e.g., after closing shop)
+    // This keeps icons and requirement overlays in sync with saved state.
+    // Note: function defined later in file.
+    reloadGardenFromSaves();
+    displayRequirementSprite();
 }
 
 void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
 {
-    // Check if any item is selected (m_selectedItem != 0)
-    if (ZenGardenLayer::m_selectedItem != 0)
+    auto item = static_cast<CCNode *>(sender);
+    int clickedPos = -1;
+    if (auto mi = typeinfo_cast<CCMenuItem *>(item))
+    {
+        clickedPos = mi->getTag();
+    }
+
+    // If a feed item is selected, apply it to the clicked slot directly
+    if (ZenGardenLayer::m_selectedItem != 0 && clickedPos >= 0)
     {
         bool validFeed = false;
 
-        // Handle feeding based on maturity level and selected item
-        if (m_maturityLevel < 1 && ZenGardenLayer::m_selectedItem == 1)
-        {
-            // Baby needs orbs, check for cooldown
-            if (canFeedOrb())
-            {
-                m_orbsFeeded++;
-                Mod::get()->setSavedValue<int>("player_orbs_fed", m_orbsFeeded);
+        int maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(clickedPos), 0);
 
-                // Update last feed time using system time in seconds
+        if (maturity < 1 && ZenGardenLayer::m_selectedItem == 1)
+        {
+            if (canFeedOrbForPos(clickedPos))
+            {
+                int orbsFed = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(clickedPos), 0) + 1;
+                Mod::get()->setSavedValue<int>("player_orbs_fed_" + std::to_string(clickedPos), orbsFed);
+
                 auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
                                        std::chrono::system_clock::now().time_since_epoch())
                                        .count();
-                m_lastOrbFeedTime = currentTime;
-                Mod::get()->setSavedValue<int64_t>("player_last_orb_feed", m_lastOrbFeedTime);
+                Mod::get()->setSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(clickedPos), currentTime);
 
-                // Check if we've reached 5 orbs to level up
-                if (m_orbsFeeded >= 5)
+                if (orbsFed >= 5)
                 {
-                    handlePlayerGrowth();
+                    handlePlayerGrowthForPos(clickedPos);
+                    maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(clickedPos), 0);
                 }
 
                 validFeed = true;
             }
             else
             {
-                displayOrbCooldownMessage();
+                displayOrbCooldownMessageForPos(clickedPos);
             }
         }
-        else if (m_maturityLevel == 1 && ZenGardenLayer::m_selectedItem == 2)
+        else if (maturity == 1 && ZenGardenLayer::m_selectedItem == 2)
         {
-            // Young player needs stars
             if (ZenGardenLayer::m_starCount > 0)
             {
                 ZenGardenLayer::m_starCount -= 1;
                 Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
-                handlePlayerGrowth();
+                handlePlayerGrowthForPos(clickedPos);
                 validFeed = true;
             }
             else
             {
-                log::debug("Not Enough Stars");
                 Notification::create("Not Enough Stars", NotificationIcon::Warning, 1.f)->show();
             }
         }
-        else if (m_maturityLevel == 2 && ZenGardenLayer::m_selectedItem == 3)
+        else if (maturity == 2 && ZenGardenLayer::m_selectedItem == 3)
         {
-            // Teen player needs moons
             if (ZenGardenLayer::m_moonCount > 0)
             {
                 ZenGardenLayer::m_moonCount -= 1;
                 Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
-                handlePlayerGrowth();
+                handlePlayerGrowthForPos(clickedPos);
                 validFeed = true;
             }
             else
             {
-                log::debug("Not Enough Moons");
-                Notification::create("Not Enough Moons", NotificationIcon::Warning, 1.)->show();
+                Notification::create("Not Enough Moons", NotificationIcon::Warning, 1.f)->show();
             }
         }
-        else if (m_maturityLevel >= 3 && m_maturityLevel < 5 && ZenGardenLayer::m_selectedItem == 4)
+        else if (maturity >= 3 && maturity < 5 && ZenGardenLayer::m_selectedItem == 4)
         {
-            // Adult and elder players need diamonds
             if (ZenGardenLayer::m_diamondCount > 0)
             {
                 ZenGardenLayer::m_diamondCount -= 1;
                 Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
-                handlePlayerGrowth();
+                handlePlayerGrowthForPos(clickedPos);
                 validFeed = true;
             }
             else
@@ -609,61 +466,191 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
         }
         else
         {
-            // Wrong food for current maturity level
             std::string message;
-            if (m_maturityLevel < 1)
-            {
-                message = "Your baby player needs orbs to grow.";
-            }
-            else if (m_maturityLevel == 1)
-            {
-                message = "Your young player needs stars to grow.";
-            }
-            else if (m_maturityLevel == 2)
-            {
-                message = "Your teenage player needs moons to grow.";
-            }
-            else if (m_maturityLevel < 5)
-            {
-                message = "Your adult player needs diamonds to grow.";
-            }
+            if (maturity < 1)
+                message = "Baby needs orbs.";
+            else if (maturity == 1)
+                message = "Young needs stars.";
+            else if (maturity == 2)
+                message = "Teen needs moons.";
+            else if (maturity < 5)
+                message = "Adult/Elder need diamonds.";
             else
-            {
-                message = "Your player is fully mature and doesn't need to eat.";
-            }
-
-            log::debug("Wrong Food: {}", message);
+                message = "Player fully mature.";
             Notification::create("Wrong Food: " + message, NotificationIcon::Warning, 1.f)->show();
         }
 
-        // If feed was valid, check for coin rewards
         if (validFeed)
         {
             tryEmitCoins();
             Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
             flashShards();
-
-            // Update the requirement visuals
+            updatePlayerMaturityVisualsForPos(clickedPos);
             displayRequirementSprite();
         }
 
-        // Reset selected item after feeding attempt
+        // Always reset selection after an attempt
         ZenGardenLayer::m_selectedItem = 0;
-        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
-        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_orbsHoverSprite)
+            ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_starsHoverSprite)
+            ZenGardenLayer::m_starsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_moonsHoverSprite)
+            ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_diamondsHoverSprite)
+            ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+        return;
     }
-    else
+
+    // If no food is selected, keep previous behavior of updating active selection and showing info
+    if (clickedPos >= 0)
     {
-        // No item selected, show player info popup
-        auto playerInfo = SimplePlayerInfo::create(ZenGardenLayer::m_simplePlayer);
-        if (playerInfo)
+        m_activePos = clickedPos;
+        SimplePlayer *clickedPlayer = nullptr;
+        if (item->getChildren() && item->getChildren()->count() > 0)
+        {
+            clickedPlayer = typeinfo_cast<SimplePlayer *>(item->getChildren()->objectAtIndex(0));
+        }
+        if (clickedPlayer)
+            m_simplePlayer = clickedPlayer;
+
+        m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(m_activePos), 0);
+        m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(m_activePos), 0);
+        m_lastOrbFeedTime = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(m_activePos), 0);
+        displayRequirementSprite();
+    }
+
+    if (ZenGardenLayer::m_simplePlayer)
+    {
+        int slotForPopup = m_activePos;
+        if (auto playerInfo = SimplePlayerInfo::create(ZenGardenLayer::m_simplePlayer, slotForPopup))
         {
             playerInfo->show();
         }
     }
 };
+
+void ZenGardenLayer::reloadGardenFromSaves()
+{
+    auto windowSize = CCDirector::sharedDirector()->getWinSize();
+    int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
+
+    // Remove existing requirement UI on all players
+    hideRequirementSprite();
+
+    // Remove existing players menu (if any)
+    if (auto oldMenu = this->getChildByID("players-menu"))
+    {
+        this->removeChild(oldMenu);
+    }
+
+    // Build menu of purchased players again
+    auto playersMenu = CCMenu::create();
+    playersMenu->setPosition({0, 0});
+    playersMenu->setID("players-menu");
+    this->addChild(playersMenu);
+
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    bool firstPlayerAssigned = false;
+    if (!positionsStr.empty())
+    {
+        std::stringstream ss(positionsStr);
+        std::string token;
+        while (std::getline(ss, token, ','))
+        {
+            // Parse slot index
+            int pos = -1;
+            if (!token.empty())
+            {
+                char *endp = nullptr;
+                long v = std::strtol(token.c_str(), &endp, 10);
+                if (endp && *endp == '\0')
+                    pos = static_cast<int>(v);
+            }
+            if (pos < 0 || pos >= 8)
+                continue;
+
+            std::string key = "player_" + std::to_string(pos);
+            std::string playerInfo = Mod::get()->getSavedValue<std::string>(key, "");
+            if (playerInfo.empty())
+                continue;
+
+            // Expected: icon,color1,color2[,glow]
+            std::stringstream playerSS(playerInfo);
+            std::string infoToken;
+            std::vector<int> values;
+            while (std::getline(playerSS, infoToken, ','))
+            {
+                if (!infoToken.empty())
+                {
+                    char *endp = nullptr;
+                    long v = std::strtol(infoToken.c_str(), &endp, 10);
+                    if (endp && *endp == '\0')
+                        values.push_back(static_cast<int>(v));
+                }
+            }
+            if (values.size() < 3)
+                continue;
+
+            int iconId = values[0];
+            int color1Idx = values[1];
+            int color2Idx = values[2];
+
+            auto playerNode = SimplePlayer::create(1);
+            playerNode->updatePlayerFrame(iconId, static_cast<IconType>(0));
+            // Store iconId on the node so popups can mirror it reliably
+            playerNode->setTag(iconId);
+
+            auto gm = GameManager::sharedState();
+            playerNode->setColors(gm->colorForIdx(color1Idx), gm->colorForIdx(color2Idx));
+
+            int playerX = (windowSize.width / 2) + xPositions[pos];
+            int playerY = (windowSize.height / 2) + 75; // Top row
+            if (pos >= 4)
+                playerY -= 90; // Bottom row
+
+            int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+            float playerScale = std::min(0.5f + (perMaturity * 0.06f), 0.8f);
+
+            auto playerItem = CCMenuItemSpriteExtra::create(
+                playerNode,
+                this,
+                menu_selector(ZenGardenLayer::onSimplePlayerClicked));
+            playerItem->setID("purchased-player-" + std::to_string(pos));
+            playerItem->setTag(pos);
+            playerItem->setPosition(ccp(playerX, playerY));
+            playerNode->setScale(playerScale);
+            playerItem->setContentSize({40.f, 40.f});
+            playerNode->setAnchorPoint(ccp(0.5f, 0.5f));
+            playerNode->setPosition({playerItem->getContentSize().width / 2, playerItem->getContentSize().height / 2});
+            playersMenu->addChild(playerItem);
+
+            if (!firstPlayerAssigned)
+            {
+                ZenGardenLayer::m_simplePlayer = playerNode;
+                m_activePos = pos;
+                m_maturityLevel = perMaturity;
+                m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                m_lastOrbFeedTime = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+                firstPlayerAssigned = true;
+            }
+        }
+    }
+    else
+    {
+        m_activePos = -1;
+        m_simplePlayer = nullptr;
+    }
+
+    // Recreate overlays for every player
+    displayRequirementSprite();
+}
+
+void ZenGardenLayer::updateSlotRequirementUI(int pos)
+{
+    // Overlays are shown for every slot now; refresh all
+    displayRequirementSprite();
+}
 
 void ZenGardenLayer::showBronzeCoinReward()
 {
@@ -675,8 +662,10 @@ void ZenGardenLayer::showBronzeCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int coinX = (windowSize.width / 2) + xPositions[0];
-    int coinY = (windowSize.height / 2) + 75 + 30; // 30 pixels above the player
+    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
+    int baseY = (posIdx < 4 ? 75 : (75 - 90));
+    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
@@ -727,8 +716,10 @@ void ZenGardenLayer::showSilverCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int coinX = (windowSize.width / 2) + xPositions[0];
-    int coinY = (windowSize.height / 2) + 75 + 30; // 30 pixels above the player
+    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
+    int baseY = (posIdx < 4 ? 75 : (75 - 90));
+    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
@@ -777,8 +768,10 @@ void ZenGardenLayer::showGoldCoinReward()
     // Position the coin above the SimplePlayer
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190}; // The x pos array (scary)
-    int coinX = (windowSize.width / 2) + xPositions[0];
-    int coinY = (windowSize.height / 2) + 75 + 30; // 30 pixels above the player
+    int posIdx = (m_activePos >= 0 ? m_activePos : 0);
+    int baseY = (posIdx < 4 ? 75 : (75 - 90));
+    int coinX = (windowSize.width / 2) + xPositions[posIdx];
+    int coinY = (windowSize.height / 2) + baseY + 30; // 30 pixels above the player
 
     newCoinSprite->setPosition(ccp(coinX, coinY));
     newCoinSprite->setVisible(true);
@@ -872,65 +865,104 @@ void ZenGardenLayer::removeCoinSprite(CCNode *sender)
 
 void ZenGardenLayer::displayRequirementSprite()
 {
-    auto windowSize = CCDirector::sharedDirector()->getWinSize();
-    int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
-    int iconX = (windowSize.width / 2) + xPositions[0] - 15; // Position to the left of player
-    int iconY = (windowSize.height / 2) + 75 + 15;           // Position above player
+    // Build overlays for every player slot present in players-menu
+    auto playersMenu = this->getChildByID("players-menu");
+    if (!playersMenu)
+        return;
 
-    // Remove old sprite and label if they exist
-    if (m_requirementSprite)
-    {
-        m_requirementSprite->removeFromParent();
-        m_requirementSprite = nullptr;
-    }
+    auto children = playersMenu->getChildren();
+    if (!children)
+        return;
 
-    if (m_requirementLabel)
+    for (unsigned int i = 0; i < children->count(); ++i)
     {
-        m_requirementLabel->removeFromParent();
-        m_requirementLabel = nullptr;
-    }
+        auto item = static_cast<CCNode *>(children->objectAtIndex(i));
+        int pos = -1;
+    if (auto mi = typeinfo_cast<CCMenuItem *>(item))
+        {
+            pos = mi->getTag();
+        }
+        if (pos < 0 || pos >= 8)
+            continue;
 
-    // Create appropriate sprite based on maturity level
-    if (m_maturityLevel < 1)
-    {
-        m_requirementSprite = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
-        m_requirementSprite->setColor({255, 255, 255});
+        // Remove existing per-item overlays
+        if (auto oldIcon = item->getChildByID("req-icon"))
+            item->removeChild(oldIcon);
+        if (auto oldLabel = item->getChildByID("req-label"))
+            item->removeChild(oldLabel);
 
-        // Add orb counter label
-        m_requirementLabel = CCLabelBMFont::create((std::to_string(m_orbsFeeded) + "/5").c_str(), "goldFont.fnt");
-        m_requirementLabel->setScale(0.3f);
-        m_requirementLabel->setPosition(ccp(iconX + 12, iconY - 8));
-        this->addChild(m_requirementLabel);
-    }
-    else if (m_maturityLevel < 2)
-    {
-        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
-    }
-    else if (m_maturityLevel < 3)
-    {
-        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
-    }
-    else if (m_maturityLevel < 5)
-    {
-        m_requirementSprite = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
-    }
+        int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
 
-    if (m_requirementSprite)
-    {
-        m_requirementSprite->setScale(0.4f);
-        m_requirementSprite->setPosition(ccp(iconX, iconY));
-        this->addChild(m_requirementSprite);
+        // Fully mature -> no requirement to show
+        if (perMaturity >= 5)
+            continue;
+
+        CCSprite *icon = nullptr;
+        if (perMaturity < 1)
+        {
+            // For babies: keep label visible regardless of cooldown; hide only the icon when on cooldown
+            bool canFeed = canFeedOrbForPos(pos);
+            if (canFeed)
+            {
+                icon = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
+            }
+        }
+        else if (perMaturity < 2)
+        {
+            icon = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
+        }
+        else if (perMaturity < 3)
+        {
+            icon = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
+        }
+        else
+        {
+            icon = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
+        }
+
+        if (icon)
+        {
+            icon->setID("req-icon");
+            icon->setScale(0.4f);
+            icon->setPosition({8.f, 32.f});
+            item->addChild(icon, 500);
+
+            if (perMaturity < 1)
+            {
+                int orbsFed = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                auto lbl = CCLabelBMFont::create((std::to_string(orbsFed) + "/5").c_str(), "goldFont.fnt");
+                lbl->setID("req-label");
+                lbl->setScale(0.3f);
+                lbl->setPosition({20.f, 10.f});
+                item->addChild(lbl, 500);
+            }
+        }
     }
 }
 
 void ZenGardenLayer::hideRequirementSprite()
 {
+    // Remove all per-item overlays
+    if (auto playersMenu = this->getChildByID("players-menu"))
+    {
+        if (auto children = playersMenu->getChildren())
+        {
+            for (unsigned int i = 0; i < children->count(); ++i)
+            {
+                auto item = static_cast<CCNode *>(children->objectAtIndex(i));
+                if (auto ic = item->getChildByID("req-icon"))
+                    item->removeChild(ic);
+                // if (auto lb = item->getChildByID("req-label")) item->removeChild(lb);
+            }
+        }
+    }
+
+    // Clear legacy single refs if any
     if (m_requirementSprite)
     {
         m_requirementSprite->removeFromParent();
         m_requirementSprite = nullptr;
     }
-
     if (m_requirementLabel)
     {
         m_requirementLabel->removeFromParent();
@@ -966,8 +998,11 @@ void ZenGardenLayer::handlePlayerGrowth()
             m_orbsFeeded = 0;
         }
 
-        // Save updated maturity level
-        Mod::get()->setSavedValue<int>("player_maturity", m_maturityLevel);
+        // Save updated maturity level (per active player if available)
+        if (m_activePos >= 0)
+            Mod::get()->setSavedValue<int>("player_maturity_" + std::to_string(m_activePos), m_maturityLevel);
+        else
+            Mod::get()->setSavedValue<int>("player_maturity", m_maturityLevel);
 
         // Update visuals
         updatePlayerMaturityVisuals();
@@ -991,7 +1026,7 @@ bool ZenGardenLayer::canFeedOrb()
 
     int64_t timeSinceLastFeed = currentTime - m_lastOrbFeedTime;
 
-    log::debug("Time since last feed: {} seconds", timeSinceLastFeed);
+    // log::debug("Time since last feed: {} seconds", timeSinceLastFeed);
 
     // 15-20 second cooldown (use 17.5 seconds)
     return timeSinceLastFeed >= 17;
@@ -1049,10 +1084,71 @@ void ZenGardenLayer::update(float dt)
         m_diamondCurrencyIcon->setPosition(ccp(m_diamondShardsLabel->getPositionX() - (labelWidth / 2) - 15, m_diamondShardsLabel->getPositionY()));
     }
 
-    // If we have a requirement label showing for orbs (maturity level 0), update it
-    if (m_maturityLevel == 0 && m_requirementLabel)
+    // Update per-slot overlays for babies: toggle visibility by cooldown and refresh X/5
+    if (auto playersMenu = this->getChildByID("players-menu"))
     {
-        m_requirementLabel->setString((std::to_string(m_orbsFeeded) + "/5").c_str(), true);
+        if (auto children = playersMenu->getChildren())
+        {
+            for (unsigned int i = 0; i < children->count(); ++i)
+            {
+                auto item = static_cast<CCNode *>(children->objectAtIndex(i));
+                int pos = -1;
+                if (auto mi = typeinfo_cast<CCMenuItem *>(item))
+                    pos = mi->getTag();
+                if (pos < 0)
+                    continue;
+                int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+                if (perMaturity == 0)
+                {
+                    bool canFeed = canFeedOrbForPos(pos);
+                    auto icon = item->getChildByID("req-icon");
+                    auto lblNode = item->getChildByID("req-label");
+                    if (!canFeed)
+                    {
+                        // On cooldown: hide icon but keep/update the label
+                        if (icon)
+                            item->removeChild(icon);
+                        auto lbl = typeinfo_cast<CCLabelBMFont *>(lblNode);
+                        if (!lbl)
+                        {
+                            lbl = CCLabelBMFont::create("0/5", "goldFont.fnt");
+                            lbl->setID("req-label");
+                            lbl->setScale(0.3f);
+                            lbl->setPosition({20.f, 10.f});
+                            item->addChild(lbl, 500);
+                        }
+                        int orbsFed = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                        lbl->setString((std::to_string(orbsFed) + "/5").c_str(), true);
+                    }
+                    else
+                    {
+                        // Not on cooldown: ensure icon & label exist and update progress
+                        if (!icon)
+                        {
+                            auto newIcon = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
+                            if (newIcon)
+                            {
+                                newIcon->setID("req-icon");
+                                newIcon->setScale(0.4f);
+                                newIcon->setPosition({8.f, 32.f});
+                                item->addChild(newIcon, 500);
+                            }
+                        }
+                        auto lbl = typeinfo_cast<CCLabelBMFont *>(lblNode);
+                        if (!lbl)
+                        {
+                            lbl = CCLabelBMFont::create("0/5", "goldFont.fnt");
+                            lbl->setID("req-label");
+                            lbl->setScale(0.3f);
+                            lbl->setPosition({20.f, 10.f});
+                            item->addChild(lbl, 500);
+                        }
+                        int orbsFed = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                        lbl->setString((std::to_string(orbsFed) + "/5").c_str(), true);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1092,6 +1188,29 @@ void ZenGardenLayer::confirmResetProgress()
     Mod::get()->setSavedValue<int>("diamonds", 4);
     Mod::get()->setSavedValue<int>("money", 0);
 
+    // Clear purchased players and per-slot data
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    if (!positionsStr.empty())
+    {
+        std::stringstream ss(positionsStr);
+        std::string token;
+        while (std::getline(ss, token, ','))
+        {
+            int pos = -1;
+            if (pos >= 0 && pos < 8)
+            {
+                Mod::get()->setSavedValue<std::string>("player_" + std::to_string(pos), "");
+                Mod::get()->setSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+                Mod::get()->setSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+                Mod::get()->setSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+            }
+        }
+    }
+    Mod::get()->setSavedValue<std::string>("player_positions", "");
+    // Reset shop purchase state so icons are available again
+    Mod::get()->setSavedValue<bool>("shop_item_0_purchased", false);
+    Mod::get()->setSavedValue<bool>("shop_item_1_purchased", false);
+
     // Update in-memory values
     m_maturityLevel = 0;
     m_orbsFeeded = 0;
@@ -1100,6 +1219,16 @@ void ZenGardenLayer::confirmResetProgress()
     m_moonCount = 3;
     m_diamondCount = 4;
     m_diamondShards = GameStatsManager::sharedState()->getStat("29");
+    m_activePos = -1;
+
+    // Immediately clear UI: remove all players and requirement overlays
+    if (auto playersMenu = this->getChildByID("players-menu"))
+    {
+        this->removeChild(playersMenu);
+    }
+    hideRequirementSprite();
+    // Rebuild to ensure empty state is shown
+    reloadGardenFromSaves();
 
     // Show confirmation message
     FLAlertLayer::create(
@@ -1134,8 +1263,14 @@ CCArray *ZenGardenLayer::getOccupiedPositions()
 
         while (std::getline(ss, token, ','))
         {
-            int pos = std::stoi(token);
-            positions->addObject(CCInteger::create(pos));
+            int pos = -1;
+            if (!token.empty()) {
+                char* endp = nullptr;
+                long v = std::strtol(token.c_str(), &endp, 10);
+                if (endp && *endp == '\0') pos = static_cast<int>(v);
+            }
+            if (pos >= 0)
+                positions->addObject(CCInteger::create(pos));
         }
     }
 
@@ -1176,17 +1311,24 @@ bool ZenGardenLayer::addRandomSimplePlayer()
         return false;
     }
 
-    // Generate random colors (1-42 for cube, 43-84 for ship, etc.)
+    // Generate random icon (1-42 typical for cube) and color indices (Geometry Dash palette indices)
     int randomIcon = rand() % 42 + 1;
-    int randomColor1 = rand() % 41 + 1;
-    int randomColor2 = rand() % 41 + 1;
+    int randomColor1 = rand() % 42 + 1;
+    int randomColor2 = rand() % 42 + 1;
+    int randomGlow = (rand() % 100) < 25 ? 1 : 0; // 25% chance to have glow
 
-    // Save the new player info
+    // Save the new player info: icon,color1,color2,glow
     std::string key = "player_" + std::to_string(freePosition);
     std::string playerInfo = std::to_string(randomIcon) + "," +
                              std::to_string(randomColor1) + "," +
-                             std::to_string(randomColor2);
+                             std::to_string(randomColor2) + "," +
+                             std::to_string(randomGlow);
     Mod::get()->setSavedValue<std::string>(key, playerInfo);
+
+    // Initialize per-slot stats for the new player
+    Mod::get()->setSavedValue<int>("player_maturity_" + std::to_string(freePosition), 0);
+    Mod::get()->setSavedValue<int>("player_orbs_fed_" + std::to_string(freePosition), 0);
+    Mod::get()->setSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(freePosition), 0);
 
     // Save the new position to the list of occupied positions
     occupiedPositions->addObject(CCInteger::create(freePosition));
@@ -1214,4 +1356,166 @@ void ZenGardenLayer::keyDown(enumKeyCodes key)
     }
 
     CCLayer::keyDown(key);
+}
+
+void ZenGardenLayer::keyBackClicked()
+{
+    onBack(nullptr);
+}
+
+void ZenGardenLayer::onBack(CCObject *sender)
+{
+    CCDirector::sharedDirector()->popScene();
+}
+
+void ZenGardenLayer::onShop(CCObject *sender)
+{
+    Mod::get()->setSavedValue<int>("stars", ZenGardenLayer::m_starCount);
+    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
+    Mod::get()->setSavedValue<int>("diamonds", ZenGardenLayer::m_diamondCount);
+    Mod::get()->setSavedValue<int>("money", ZenGardenLayer::m_diamondShards);
+
+    auto scene = CCScene::create();
+    scene->addChild(ZenGardenShopLayer::create());
+
+    CCDirector::get()->pushScene(CCTransitionMoveInT::create(.5f, scene));
+}
+
+void ZenGardenLayer::onFeedOrbs(CCObject *sender)
+{
+    if (ZenGardenLayer::m_selectedItem != 1)
+    {
+        ZenGardenLayer::m_selectedItem = 1;
+        if (ZenGardenLayer::m_orbsHoverSprite)
+            ZenGardenLayer::m_orbsHoverSprite->setVisible(true);
+        if (ZenGardenLayer::m_starsHoverSprite)
+            ZenGardenLayer::m_starsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_moonsHoverSprite)
+            ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_diamondsHoverSprite)
+            ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    }
+}
+
+void ZenGardenLayer::onFeedStars(CCObject *sender)
+{
+    if (ZenGardenLayer::m_selectedItem != 2)
+    {
+        ZenGardenLayer::m_selectedItem = 2;
+        if (ZenGardenLayer::m_orbsHoverSprite)
+            ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_starsHoverSprite)
+            ZenGardenLayer::m_starsHoverSprite->setVisible(true);
+        if (ZenGardenLayer::m_moonsHoverSprite)
+            ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_diamondsHoverSprite)
+            ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    }
+}
+
+void ZenGardenLayer::onFeedMoons(CCObject *sender)
+{
+    if (ZenGardenLayer::m_selectedItem != 3)
+    {
+        ZenGardenLayer::m_selectedItem = 3;
+        if (ZenGardenLayer::m_orbsHoverSprite)
+            ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_starsHoverSprite)
+            ZenGardenLayer::m_starsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_moonsHoverSprite)
+            ZenGardenLayer::m_moonsHoverSprite->setVisible(true);
+        if (ZenGardenLayer::m_diamondsHoverSprite)
+            ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    }
+}
+
+void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
+{
+    if (ZenGardenLayer::m_selectedItem != 4)
+    {
+        ZenGardenLayer::m_selectedItem = 4;
+        if (ZenGardenLayer::m_orbsHoverSprite)
+            ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_starsHoverSprite)
+            ZenGardenLayer::m_starsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_moonsHoverSprite)
+            ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
+        if (ZenGardenLayer::m_diamondsHoverSprite)
+            ZenGardenLayer::m_diamondsHoverSprite->setVisible(true);
+    }
+}
+
+// Helpers to work with specific slot indices
+SimplePlayer *ZenGardenLayer::getPlayerNodeAtPos(int pos)
+{
+    if (auto playersMenu = this->getChildByID("players-menu"))
+    {
+        if (auto children = playersMenu->getChildren())
+        {
+            for (unsigned int i = 0; i < children->count(); ++i)
+            {
+                auto node = static_cast<CCNode *>(children->objectAtIndex(i));
+                int tag = -1;
+                if (auto mi = typeinfo_cast<CCMenuItem *>(node))
+                    tag = mi->getTag();
+                if (tag == pos)
+                {
+                    if (node->getChildren() && node->getChildren()->count() > 0)
+                    {
+                        return typeinfo_cast<SimplePlayer *>(node->getChildren()->objectAtIndex(0));
+                    }
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+void ZenGardenLayer::updatePlayerMaturityVisualsForPos(int pos)
+{
+    int maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+    float playerScale = std::min(0.5f + (maturity * 0.06f), 0.8f);
+    if (auto sp = getPlayerNodeAtPos(pos))
+        sp->setScale(playerScale);
+}
+
+void ZenGardenLayer::handlePlayerGrowthForPos(int pos)
+{
+    int maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
+    if (maturity < 5)
+    {
+        maturity++;
+        if (maturity == 1)
+        {
+            Mod::get()->setSavedValue<int>("player_orbs_fed_" + std::to_string(pos), 0);
+        }
+        Mod::get()->setSavedValue<int>("player_maturity_" + std::to_string(pos), maturity);
+        updatePlayerMaturityVisualsForPos(pos);
+
+        FLAlertLayer::create("Level Up!", "Your player grew to maturity level " + std::to_string(maturity) + "!", "OK")->show();
+    }
+}
+
+bool ZenGardenLayer::canFeedOrbForPos(int pos)
+{
+    auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count();
+    int64_t lastFeed = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+    int64_t timeSinceLastFeed = currentTime - lastFeed;
+    // log::debug("Time since last feed (pos {}): {} seconds", pos, timeSinceLastFeed);
+    return timeSinceLastFeed >= 17;
+}
+
+void ZenGardenLayer::displayOrbCooldownMessageForPos(int pos)
+{
+    auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count();
+    int64_t lastFeed = Mod::get()->getSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+    int64_t timeSinceLastFeed = currentTime - lastFeed;
+    int64_t remainingTime = 17 - timeSinceLastFeed;
+    int secondsRemaining = static_cast<int>(remainingTime > 0 ? remainingTime : 0);
+    log::debug("Feeding Cooldown (pos {}): {} seconds remaining", pos, secondsRemaining);
+    Notification::create("On feeding Cooldown", NotificationIcon::Loading, 1.f)->show();
 }

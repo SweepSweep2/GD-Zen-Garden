@@ -4,36 +4,27 @@
 
 using namespace geode::prelude;
 
-class $modify(ZenGardenMenuLayer, MenuLayer) {
-	bool init() {
-		if (!MenuLayer::init()) {
+class $modify(ZenGardenMenuLayer, MenuLayer)
+{
+	bool init()
+	{
+		if (!MenuLayer::init())
+		{
 			log::error("Failed to initialize MenuLayer!");
 			return false;
 		}
-		
+
 		CCSize marigoldSize{20.0f, 10.0f};
 
-		auto marigoldSprite = LazySprite::create(marigoldSize);
-
-		marigoldSprite->setLoadCallback([marigoldSprite](Result<> res) {
-			if (res) {
-				log::info("Sprite loaded successfully!");
-			} else {
-				log::error("Sprite failed to load, setting fallback: {}", res.unwrapErr());
-			}
-		});
-
-		marigoldSprite->loadFromFile(Mod::get()->getResourcesDir() / "Marigold.png");
+	auto marigoldSprite = CCSprite::create("Marigold.png"_spr);
 
 		auto openZenGarden = CCMenuItemSpriteExtra::create(
 			CircleButtonSprite::create(
 				marigoldSprite,
 				CircleBaseColor::Green,
-				CircleBaseSize::Medium
-			),
+				CircleBaseSize::MediumAlt),
 			this,
-			menu_selector(ZenGardenMenuLayer::onZenGarden)
-		);
+			menu_selector(ZenGardenMenuLayer::onZenGarden));
 
 		auto menu = this->getChildByID("right-side-menu");
 		menu->addChild(openZenGarden);
@@ -45,7 +36,8 @@ class $modify(ZenGardenMenuLayer, MenuLayer) {
 		return true;
 	}
 
-	void onZenGarden(CCObject*) {
+	void onZenGarden(CCObject *)
+	{
 		auto scene = CCScene::create();
 		scene->addChild(ZenGardenLayer::create());
 

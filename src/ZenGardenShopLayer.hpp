@@ -25,7 +25,7 @@ public:
     
     CCLabelBMFont *m_iconsLabel;
     CCLabelBMFont *m_diamondShardsLabel;
-    bool m_itemPurchased[2] = {false, false}; // Track if each item slot has been purchased
+    bool m_itemPurchased[3] = {false, false, false}; // Track if each item slot has been purchased
     time_t m_lastRestockTime = 0; // Last time items were restocked
     bool m_shouldRestock = false; // Flag indicating if restock is needed
 };

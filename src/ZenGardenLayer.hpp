@@ -11,6 +11,7 @@ class ZenGardenLayer : public cocos2d::CCLayer
 public:
     static ZenGardenLayer *create();
     bool init() override;
+    void onEnter() override;
     void onBack(CCObject *sender);
     void onShop(CCObject *sender);
     void keyBackClicked() override;
@@ -33,6 +34,13 @@ public:
     void handlePlayerGrowth();
     bool canFeedOrb();
     void displayOrbCooldownMessage();
+    // Per-slot variants (operate on the slot index directly, independent of active selection)
+    void updatePlayerMaturityVisualsForPos(int pos);
+    void handlePlayerGrowthForPos(int pos);
+    bool canFeedOrbForPos(int pos);
+    void displayOrbCooldownMessageForPos(int pos);
+    SimplePlayer* getPlayerNodeAtPos(int pos);
+    // Show/remove requirement overlays for all players
     void displayRequirementSprite();
     void hideRequirementSprite();
     
@@ -47,6 +55,11 @@ public:
     // SimplePlayer management
     static bool addRandomSimplePlayer();
     static CCArray* getOccupiedPositions();
+    void reloadGardenFromSaves();
+    void updateSlotRequirementUI(int pos);
+
+    // Active player tracking (slot index 0-7), -1 when none
+    int m_activePos = -1;
 
     int m_selectedItem = 0;
     static int m_starCount;
@@ -68,6 +81,7 @@ public:
     int m_maturityLevel = 0; // 0-5, with 5 being fully mature
     int m_orbsFeeded = 0; // Track orbs fed to the player
     int64_t m_lastOrbFeedTime = 0; // When the player was last fed an orb (stored as system time in seconds)
-    CCSprite *m_requirementSprite = nullptr; // Visual indicator for what food the player needs
-    CCLabelBMFont *m_requirementLabel = nullptr; // Label for orbs progress (X/5)
+    // Legacy single references (kept for compatibility but unused by per-slot overlays)
+    CCSprite *m_requirementSprite = nullptr;
+    CCLabelBMFont *m_requirementLabel = nullptr;
 };

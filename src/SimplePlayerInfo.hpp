@@ -1,6 +1,7 @@
 #pragma once
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
+#include <Geode/ui/TextInput.hpp>
 #include <Geode/binding/SimplePlayer.hpp>
 
 using namespace geode::prelude;
@@ -18,16 +19,17 @@ class SimplePlayerInfo : public geode::Popup<SimplePlayer *>
 {
 protected:
     SimplePlayer *m_displayedPlayer;
-    int m_playerID; // ID of the player to track the specific player in the garden
+    int m_slotIndex = -1; // Garden slot index for this player (0-7)
     int m_maturityLevel; // Current maturity level (0-5)
     int m_orbsFeeded; // Number of orbs fed to this player so far
     GrowthRequirement m_currentRequirement; // Current growth requirement
+    geode::TextInput* m_nameInput = nullptr; // Name input field
     
     bool setup(SimplePlayer *player) override;
     void updateMaturityInfo(); // Updates the display with maturity information
     
 public:
-    static SimplePlayerInfo *create(SimplePlayer *player);
+    static SimplePlayerInfo *create(SimplePlayer *player, int slotIndex);
     
     // Getters and setters
     int getMaturityLevel() const { return m_maturityLevel; }

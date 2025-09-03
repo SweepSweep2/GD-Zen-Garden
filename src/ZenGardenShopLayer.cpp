@@ -7,11 +7,11 @@
 #include <cstdlib>
 #include <ctime>
 
+using namespace geode::prelude;
+
 ZenGardenShopLayer *ZenGardenShopLayer::create()
 {
     auto zenGardenShopLayer = new ZenGardenShopLayer();
-    auto playerIcon1 = SimplePlayer::create(1);
-    playerIcon1->updatePlayerFrame(1, static_cast<IconType>(1));
 
     if (zenGardenShopLayer && zenGardenShopLayer->init())
     {
@@ -46,10 +46,10 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
     geode::createQuickPopup(
         "Buy Stars",
         "Are you sure you want to buy 5 <cy>stars</c> for 100 diamond shards?",
-        "Yes", "No",
+        "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
-            if (!btn2)
+            if (btn2)
             {
                 // Get current values
                 int currentShards = Mod::get()->getSavedValue<int>("money", 0);
@@ -75,15 +75,14 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
                 // Update ZenGardenLayer labels if it exists
                 updateZenGardenLayerLabels();
 
-                FLAlertLayer::create(
-                    "Purchase Successful",
-                    "You have purchased 5 <cy>stars</c>!",
-                    "OK")
-                    ->show();
+                // FLAlertLayer::create(
+                //     "Purchase Successful",
+                //     "You have purchased 5 <cy>stars</c>!",
+                //     "OK")
+                //     ->show();
             }
         });
 }
-
 void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 {
     int cost = 200;
@@ -102,10 +101,10 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
     geode::createQuickPopup(
         "Buy Moons",
         "Are you sure you want to buy 5 <cb>moons</c> for 200 diamond shards?",
-        "Yes", "No",
+        "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
-            if (!btn2)
+            if (btn2)
             {
                 // Get current values
                 int currentShards = Mod::get()->getSavedValue<int>("money", 0);
@@ -131,11 +130,11 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
                 // Update ZenGardenLayer labels if it exists
                 updateZenGardenLayerLabels();
 
-                FLAlertLayer::create(
-                    "Purchase Successful",
-                    "You have purchased 5 <cb>moons</c>!",
-                    "OK")
-                    ->show();
+                // FLAlertLayer::create(
+                //     "Purchase Successful",
+                //     "You have purchased 5 <cb>moons</c>!",
+                //     "OK")
+                //     ->show();
             }
         });
 }
@@ -158,10 +157,10 @@ void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
     geode::createQuickPopup(
         "Buy Diamonds",
         "Are you sure you want to buy 5 <cb>diamonds</c> for 500 diamond shards?",
-        "Yes", "No",
+        "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
-            if (!btn2)
+            if (btn2)
             {
                 // Get current values
                 int currentShards = Mod::get()->getSavedValue<int>("money", 0);
@@ -187,11 +186,11 @@ void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
                 // Update ZenGardenLayer labels if it exists
                 updateZenGardenLayerLabels();
 
-                FLAlertLayer::create(
-                    "Purchase Successful",
-                    "You have purchased 5 <cb>diamonds</c>!",
-                    "OK")
-                    ->show();
+                // FLAlertLayer::create(
+                //     "Purchase Successful",
+                //     "You have purchased 5 <cb>diamonds</c>!",
+                //     "OK")
+                //     ->show();
             }
         });
 }
@@ -209,6 +208,7 @@ bool ZenGardenShopLayer::init()
     // Load purchase state from saved values
     m_itemPurchased[0] = Mod::get()->getSavedValue<bool>("shop_item_1_purchased", false);
     m_itemPurchased[1] = Mod::get()->getSavedValue<bool>("shop_item_2_purchased", false);
+    m_itemPurchased[2] = Mod::get()->getSavedValue<bool>("shop_item_3_purchased", false);
     
     // Check for restock
     checkForRestock();
@@ -288,28 +288,45 @@ bool ZenGardenShopLayer::init()
 
     // Create the label
     ZenGardenShopLayer::m_iconsLabel = CCLabelBMFont::create(
-        (std::string("Icons (restocks in ") + (hours < 10 ? "0" : "") + std::to_string(hours) + ":" + (minutes < 10 ? "0" : "") + std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds) + ")").c_str(),
+        (std::string("Icons\n(Restocks in ") + (hours < 10 ? "0" : "") + std::to_string(hours) + ":" + (minutes < 10 ? "0" : "") + std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds) + ")").c_str(),
         "bigFont.fnt");
     ZenGardenShopLayer::m_iconsLabel->setScale(0.7f);
     // t i m e
 
     ZenGardenShopLayer::m_iconsLabel->setPosition(windowSize.width / 2, windowSize.height - 105);
+    ZenGardenShopLayer::m_iconsLabel->setAlignment(kCCTextAlignmentCenter);
     ZenGardenShopLayer::m_iconsLabel->setID("icons-label");
     this->addChild(ZenGardenShopLayer::m_iconsLabel);
 
+    const float centerX = windowSize.width / 2.0f;
+    const float slotY = windowSize.height - 155.0f;
+    const float gap = 100.0f;
+    const float leftX = centerX - gap;
+    const float midX  = centerX;
+    const float rightX = centerX + gap;
+
     auto iconSlot1 = CCSprite::create("GJ_button_05.png");
-    iconSlot1->setPosition(ccp(windowSize.width / 2 - 82, windowSize.height - 155));
+    iconSlot1->setPosition(ccp(leftX, slotY));
     iconSlot1->setScale(1.25f);
     iconSlot1->setID("icon-slot-1");
 
     this->addChild(iconSlot1);
 
+    // Center slot
     auto iconSlot2 = CCSprite::create("GJ_button_05.png");
-    iconSlot2->setPosition(ccp(windowSize.width / 2 + 82, windowSize.height - 155));
+    iconSlot2->setPosition(ccp(midX, slotY));
     iconSlot2->setScale(1.25f);
     iconSlot2->setID("icon-slot-2");
 
     this->addChild(iconSlot2);
+
+    // Right slot (renumbered as 3rd internally)
+    auto iconSlot3 = CCSprite::create("GJ_button_05.png");
+    iconSlot3->setPosition(ccp(rightX, slotY));
+    iconSlot3->setScale(1.25f);
+    iconSlot3->setID("icon-slot-3");
+
+    this->addChild(iconSlot3);
     
     // Create menus for SimplePlayer icons
     auto playerIconsMenu = CCMenu::create();
@@ -317,51 +334,78 @@ bool ZenGardenShopLayer::init()
     playerIconsMenu->setID("player-icons-menu");
     this->addChild(playerIconsMenu);
     
-    // Create SimplePlayer1 as a clickable menu item
-    auto playerIcon1 = SimplePlayer::create(1);
-    playerIcon1->setColor({128, 128, 128}); // Grey color
-    playerIcon1->setScale(1.0f);
-    
+    // Create SimplePlayer1 as a clickable menu item (greyed out)
+    auto sp1 = SimplePlayer::create(1);
+    sp1->setColor({128, 128, 128});
+    sp1->setAnchorPoint({0.5f, 0.5f});
     auto playerMenuItem1 = CCMenuItemSpriteExtra::create(
-        playerIcon1,
+        sp1,
         this,
         menu_selector(ZenGardenShopLayer::onBuySimplePlayer)
     );
-    playerMenuItem1->setPosition(ccp(windowSize.width / 2 - 82, windowSize.height - 155));
+    playerMenuItem1->setPosition(ccp(leftX, slotY));
     playerMenuItem1->setID("simple-player-icon-1");
-    playerMenuItem1->setTag(0); // Tag 0 for first slot
+    playerMenuItem1->setContentSize({40.f, 40.f});
+    playerMenuItem1->setTag(0);
+    // center child in the menu item bounds
+    sp1->setPosition({playerMenuItem1->getContentSize().width / 2, playerMenuItem1->getContentSize().height / 2});
     playerIconsMenu->addChild(playerMenuItem1);
     
     // Add question mark over the SimplePlayer
     auto questionMark1 = CCLabelBMFont::create("?", "bigFont.fnt");
-    questionMark1->setPosition(ccp(windowSize.width / 2 - 82, windowSize.height - 155));
-    questionMark1->setScale(1.0f);
+    questionMark1->setPosition(ccp(leftX, slotY));
+    questionMark1->setScale(.8f);
     questionMark1->setID("question-mark-1");
-    this->addChild(questionMark1);
+    this->addChild(questionMark1, 10);
     
-    // Create SimplePlayer2 as a clickable menu item
-    auto playerIcon2 = SimplePlayer::create(1);
-    playerIcon2->setColor({128, 128, 128}); // Grey color
-    playerIcon2->setScale(1.0f);
-    
+    // Create SimplePlayer2 as a clickable menu item (greyed out)
+    auto sp2 = SimplePlayer::create(1);
+    sp2->setColor({128, 128, 128});
+    sp2->setAnchorPoint({0.5f, 0.5f});
     auto playerMenuItem2 = CCMenuItemSpriteExtra::create(
-        playerIcon2,
+        sp2,
         this,
         menu_selector(ZenGardenShopLayer::onBuySimplePlayer)
     );
-    playerMenuItem2->setPosition(ccp(windowSize.width / 2 + 82, windowSize.height - 155));
+    playerMenuItem2->setPosition(ccp(midX, slotY));
     playerMenuItem2->setID("simple-player-icon-2");
-    playerMenuItem2->setTag(1); // Tag 1 for second slot
+    playerMenuItem2->setContentSize({40.f, 40.f});
+    playerMenuItem2->setTag(1);
+    // center child in the menu item bounds
+    sp2->setPosition({playerMenuItem2->getContentSize().width / 2, playerMenuItem2->getContentSize().height / 2});
     playerIconsMenu->addChild(playerMenuItem2);
     
     // Add question mark over the SimplePlayer
     auto questionMark2 = CCLabelBMFont::create("?", "bigFont.fnt");
-    questionMark2->setPosition(ccp(windowSize.width / 2 + 82, windowSize.height - 155));
-    questionMark2->setScale(1.0f);
+    questionMark2->setPosition(ccp(midX, slotY));
+    questionMark2->setScale(.8f);
     questionMark2->setID("question-mark-2");
-    this->addChild(questionMark2);
+    this->addChild(questionMark2, 10);
 
-    auto statsLabel = CCLabelBMFont::create("Stars/Moons/Diamonds", "bigFont.fnt");
+    // Create SimplePlayer3 as a clickable menu item (greyed out)
+    auto sp3 = SimplePlayer::create(1);
+    sp3->setColor({128, 128, 128});
+    sp3->setAnchorPoint({0.5f, 0.5f});
+    auto playerMenuItem3 = CCMenuItemSpriteExtra::create(
+        sp3,
+        this,
+        menu_selector(ZenGardenShopLayer::onBuySimplePlayer)
+    );
+    playerMenuItem3->setPosition(ccp(rightX, slotY));
+    playerMenuItem3->setID("simple-player-icon-3");
+    playerMenuItem3->setContentSize({40.f, 40.f});
+    playerMenuItem3->setTag(2);
+    sp3->setPosition({playerMenuItem3->getContentSize().width / 2, playerMenuItem3->getContentSize().height / 2});
+    playerIconsMenu->addChild(playerMenuItem3);
+
+    // Add question mark over the SimplePlayer
+    auto questionMark3 = CCLabelBMFont::create("?", "bigFont.fnt");
+    questionMark3->setPosition(ccp(rightX, slotY));
+    questionMark3->setScale(.8f);
+    questionMark3->setID("question-mark-3");
+    this->addChild(questionMark3, 10);
+
+    auto statsLabel = CCLabelBMFont::create("Stars / Moons / Diamonds", "bigFont.fnt");
     statsLabel->setPosition(windowSize.width / 2, windowSize.height - 225);
     statsLabel->setScale(0.7f);
     statsLabel->setID("stats-label");
@@ -425,7 +469,7 @@ bool ZenGardenShopLayer::init()
     
     // Add price label for SimplePlayer icons
     auto priceLabel = CCLabelBMFont::create("Click to Buy - 1000 diamond shards", "chatFont.fnt");
-    priceLabel->setPosition(windowSize.width / 2, windowSize.height - 185);
+    priceLabel->setPosition(windowSize.width / 2, windowSize.height - 200);
     priceLabel->setScale(0.7f);
     priceLabel->setID("simple-player-price-label");
     this->addChild(priceLabel);
@@ -459,7 +503,7 @@ void ZenGardenShopLayer::updateIconsLabel(float dt)
 
     // Update the label text
     ZenGardenShopLayer::m_iconsLabel->setString((
-                                                    std::string("Icons (restocks in ") + (hours < 10 ? "0" : "") + std::to_string(hours) + ":" + (minutes < 10 ? "0" : "") + std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds) + ")")
+                                                    std::string("Icons\n(Restocks in ") + (hours < 10 ? "0" : "") + std::to_string(hours) + ":" + (minutes < 10 ? "0" : "") + std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds) + ")")
                                                     .c_str());
 
     // Update the diamond shards label to keep it in sync with saved value
@@ -518,7 +562,7 @@ void ZenGardenShopLayer::checkForRestock()
 void ZenGardenShopLayer::onBuySimplePlayer(CCObject* sender)
 {
     // Get the slot from the menu item's tag
-    auto menuItem = dynamic_cast<CCMenuItemSpriteExtra*>(sender);
+    auto menuItem = typeinfo_cast<CCMenuItemSpriteExtra*>(sender);
     if (!menuItem) return;
     
     int slotToPurchase = menuItem->getTag();
@@ -549,13 +593,42 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject* sender)
     geode::createQuickPopup(
         "Buy Mystery Player",
         "Are you sure you want to buy a <cr>mystery player</c> for 1000 diamond shards?",
-        "Yes", "No",
+        "No", "Yes",
         [this, cost, slotToPurchase](FLAlertLayer*, bool btn2)
         {
-            if (!btn2)
+            if (btn2)
             {
-                // Check if there's room for a new player
-                bool success = ZenGardenLayer::addRandomSimplePlayer();
+                // Prefer to place the new player in the very first slot (top-left, index 0) if free
+                bool success = false;
+                {
+                    auto occupied = ZenGardenLayer::getOccupiedPositions();
+                    bool slot0Free = true;
+                    for (unsigned int i = 0; i < occupied->count(); ++i) {
+                        if (static_cast<CCInteger*>(occupied->objectAtIndex(i))->getValue() == 0) {
+                            slot0Free = false;
+                            break;
+                        }
+                    }
+                    if (slot0Free) {
+                        // Manually inject a player at slot 0 by temporarily mocking addRandomSimplePlayer behavior
+                        int randomIcon = rand() % 42 + 1;
+                        int randomColor1 = rand() % 42 + 1;
+                        int randomColor2 = rand() % 42 + 1;
+                        int randomGlow = (rand() % 100) < 25 ? 1 : 0;
+                        Mod::get()->setSavedValue<std::string>("player_0", std::to_string(randomIcon) + "," + std::to_string(randomColor1) + "," + std::to_string(randomColor2) + "," + std::to_string(randomGlow));
+                        Mod::get()->setSavedValue<int>("player_maturity_0", 0);
+                        Mod::get()->setSavedValue<int>("player_orbs_fed_0", 0);
+                        Mod::get()->setSavedValue<int64_t>("player_last_orb_feed_0", 0);
+                        // Update positions list
+                        std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+                        if (positionsStr.empty()) positionsStr = "0"; else positionsStr = "0," + positionsStr;
+                        Mod::get()->setSavedValue<std::string>("player_positions", positionsStr);
+                        success = true;
+                    } else {
+                        // Fall back to first free slot
+                        success = ZenGardenLayer::addRandomSimplePlayer();
+                    }
+                }
                 
                 if (!success) {
                     FLAlertLayer::create(
@@ -583,6 +656,30 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject* sender)
                 
                 // Update UI to reflect the purchase
                 updateItemAvailability();
+
+                // Force-refresh the specific question mark label text too
+                if (slotToPurchase == 0) {
+                    if (auto q1 = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("question-mark-1"))) {
+                        q1->setString("SOLD", true);
+                        q1->setColor(ccRED);
+                        q1->setScale(0.4f);
+                        q1->setVisible(true);
+                    }
+                } else if (slotToPurchase == 1) {
+                    if (auto q2 = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("question-mark-2"))) {
+                        q2->setString("SOLD", true);
+                        q2->setColor(ccRED);
+                        q2->setScale(0.4f);
+                        q2->setVisible(true);
+                    }
+                } else if (slotToPurchase == 2) {
+                    if (auto q3 = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("question-mark-3"))) {
+                        q3->setString("SOLD", true);
+                        q3->setColor(ccRED);
+                        q3->setScale(0.4f);
+                        q3->setVisible(true);
+                    }
+                }
                 
                 // Update the diamond shards label
                 updateDiamondShardsLabel();
@@ -590,11 +687,11 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject* sender)
                 // Update ZenGardenLayer labels if it exists
                 updateZenGardenLayerLabels();
                 
-                FLAlertLayer::create(
-                    "Purchase Successful",
-                    "You have purchased a <cr>mystery player</c>! Return to your garden to see it!",
-                    "OK"
-                )->show();
+                // FLAlertLayer::create(
+                //     "Purchase Successful",
+                //     "You have purchased a <cr>mystery player</c>! Return to your garden to see it!",
+                //     "OK"
+                // )->show();
             }
         });
 }
@@ -625,64 +722,52 @@ void ZenGardenShopLayer::updateZenGardenLayerLabels()
 
 void ZenGardenShopLayer::checkPurchasedItems()
 {
-    // Find the player icons and question marks
-    auto playerIcon1 = this->getChildByID("simple-player-icon-1");
-    auto playerIcon2 = this->getChildByID("simple-player-icon-2");
+    // Find the question mark labels (direct children)
     auto questionMark1 = this->getChildByID("question-mark-1");
     auto questionMark2 = this->getChildByID("question-mark-2");
-    auto iconSlot1 = this->getChildByID("icon-slot-1");
-    auto iconSlot2 = this->getChildByID("icon-slot-2");
+    auto questionMark3 = this->getChildByID("question-mark-3");
     
-    // Update visibility based on purchase state
-    if (playerIcon1 && questionMark1) {
+    // Update question mark labels based solely on purchase state so SOLD persists after reopening
+    if (auto q1 = typeinfo_cast<CCLabelBMFont*>(questionMark1)) {
         if (m_itemPurchased[0]) {
-            playerIcon1->setVisible(false);
-            questionMark1->setVisible(false);
-            
-            // Add "Sold Out" text over the slot
-            if (!this->getChildByID("sold-out-1")) {
-                auto soldOut = CCLabelBMFont::create("SOLD", "goldFont.fnt");
-                soldOut->setScale(0.6f);
-                soldOut->setColor(ccRED);
-                soldOut->setPosition(playerIcon1->getPosition());
-                soldOut->setID("sold-out-1");
-                this->addChild(soldOut, 10);
-            }
+            q1->setString("SOLD", true);
+            q1->setColor(ccRED);
+            q1->setScale(0.4f);
+            q1->setVisible(true);
+            if (auto legacy = this->getChildByID("sold-out-1")) this->removeChild(legacy);
         } else {
-            playerIcon1->setVisible(true);
-            questionMark1->setVisible(true);
-            
-            // Remove "Sold Out" text if it exists
-            auto soldOut = this->getChildByID("sold-out-1");
-            if (soldOut) {
-                this->removeChild(soldOut);
-            }
+            q1->setString("?", true);
+            q1->setColor(ccWHITE);
+            q1->setScale(0.8f);
+            q1->setVisible(true);
         }
     }
-    
-    if (playerIcon2 && questionMark2) {
+    if (auto q2 = typeinfo_cast<CCLabelBMFont*>(questionMark2)) {
         if (m_itemPurchased[1]) {
-            playerIcon2->setVisible(false);
-            questionMark2->setVisible(false);
-            
-            // Add "Sold Out" text over the slot
-            if (!this->getChildByID("sold-out-2")) {
-                auto soldOut = CCLabelBMFont::create("SOLD", "goldFont.fnt");
-                soldOut->setScale(0.6f);
-                soldOut->setColor(ccRED);
-                soldOut->setPosition(playerIcon2->getPosition());
-                soldOut->setID("sold-out-2");
-                this->addChild(soldOut, 10);
-            }
+            q2->setString("SOLD", true);
+            q2->setColor(ccRED);
+            q2->setScale(0.4f);
+            q2->setVisible(true);
+            if (auto legacy = this->getChildByID("sold-out-2")) this->removeChild(legacy);
         } else {
-            playerIcon2->setVisible(true);
-            questionMark2->setVisible(true);
-            
-            // Remove "Sold Out" text if it exists
-            auto soldOut = this->getChildByID("sold-out-2");
-            if (soldOut) {
-                this->removeChild(soldOut);
-            }
+            q2->setString("?", true);
+            q2->setColor(ccWHITE);
+            q2->setScale(.8f);
+            q2->setVisible(true);
+        }
+    }
+    if (auto q3 = typeinfo_cast<CCLabelBMFont*>(questionMark3)) {
+        if (m_itemPurchased[2]) {
+            q3->setString("SOLD", true);
+            q3->setColor(ccRED);
+            q3->setScale(0.4f);
+            q3->setVisible(true);
+            if (auto legacy = this->getChildByID("sold-out-3")) this->removeChild(legacy);
+        } else {
+            q3->setString("?", true);
+            q3->setColor(ccWHITE);
+            q3->setScale(.8f);
+            q3->setVisible(true);
         }
     }
     
@@ -690,26 +775,31 @@ void ZenGardenShopLayer::checkPurchasedItems()
     auto playerMenu = this->getChildByID("player-icons-menu");
     if (playerMenu) {
         // Update player icon 1 status
-        auto playerItem1 = static_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-1"));
-        if (playerItem1) {
+        if (auto playerItem1 = typeinfo_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-1"))) {
             playerItem1->setEnabled(!m_itemPurchased[0]);
+            playerItem1->setVisible(!m_itemPurchased[0]);
         }
         
-        // Update player icon 2 status
-        auto playerItem2 = static_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-2"));
-        if (playerItem2) {
+        // Update player icon 2 status (center)
+        if (auto playerItem2 = typeinfo_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-2"))) {
             playerItem2->setEnabled(!m_itemPurchased[1]);
+            playerItem2->setVisible(!m_itemPurchased[1]);
+        }
+        // Update player icon 3 status (right)
+        if (auto playerItem3 = typeinfo_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-3"))) {
+            playerItem3->setEnabled(!m_itemPurchased[2]);
+            playerItem3->setVisible(!m_itemPurchased[2]);
         }
         
         // Update price label
         auto priceLabel = this->getChildByID("simple-player-price-label");
-        if (priceLabel && dynamic_cast<CCLabelBMFont*>(priceLabel)) {
-            if (m_itemPurchased[0] && m_itemPurchased[1]) {
-                static_cast<CCLabelBMFont*>(priceLabel)->setString("Sold Out - Restocks Tomorrow");
-                static_cast<CCLabelBMFont*>(priceLabel)->setColor(ccRED);
+        if (auto priceBM = typeinfo_cast<CCLabelBMFont*>(priceLabel)) {
+            if (m_itemPurchased[0] && m_itemPurchased[1] && m_itemPurchased[2]) {
+                priceBM->setString("Sold Out - restocks tomorrow", true);
+                priceBM->setColor({200, 200, 200});
             } else {
-                static_cast<CCLabelBMFont*>(priceLabel)->setString("Click to Buy - 1000 diamond shards");
-                static_cast<CCLabelBMFont*>(priceLabel)->setColor(ccWHITE);
+                priceBM->setString("Click to Buy - 1000 diamond shards", true);
+                priceBM->setColor(ccWHITE);
             }
         }
     }
@@ -723,6 +813,7 @@ void ZenGardenShopLayer::updateItemAvailability()
     // Save purchase state
     Mod::get()->setSavedValue<bool>("shop_item_1_purchased", m_itemPurchased[0]);
     Mod::get()->setSavedValue<bool>("shop_item_2_purchased", m_itemPurchased[1]);
+    Mod::get()->setSavedValue<bool>("shop_item_3_purchased", m_itemPurchased[2]);
     Mod::get()->setSavedValue<time_t>("shop_last_restock", m_lastRestockTime);
 }
 
@@ -731,42 +822,65 @@ void ZenGardenShopLayer::restockItems()
     // Restock all items
     m_itemPurchased[0] = false;
     m_itemPurchased[1] = false;
+    m_itemPurchased[2] = false;
     
     // Update last restock time
     m_lastRestockTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     
-    // Remove any "SOLD" labels
-    auto soldOut1 = this->getChildByID("sold-out-1");
-    if (soldOut1) {
-        this->removeChild(soldOut1);
-    }
-    
-    auto soldOut2 = this->getChildByID("sold-out-2");
-    if (soldOut2) {
-        this->removeChild(soldOut2);
-    }
+    // Remove any legacy "SOLD" labels (pre-change)
+    if (auto soldOut1 = this->getChildByID("sold-out-1")) this->removeChild(soldOut1);
+    if (auto soldOut2 = this->getChildByID("sold-out-2")) this->removeChild(soldOut2);
     
     // Reset the player icon menu items and price label
     auto playerMenu = this->getChildByID("player-icons-menu");
     if (playerMenu) {
         // Enable player icon 1
-        auto playerItem1 = static_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-1"));
-        if (playerItem1) {
+    if (auto playerItem1 = typeinfo_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-1"))) {
             playerItem1->setEnabled(true);
+            playerItem1->setVisible(true);
         }
         
         // Enable player icon 2
-        auto playerItem2 = static_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-2"));
-        if (playerItem2) {
+    if (auto playerItem2 = typeinfo_cast<CCMenuItem*>(playerMenu->getChildByID("simple-player-icon-2"))) {
             playerItem2->setEnabled(true);
+            playerItem2->setVisible(true);
         }
     }
     
     auto priceLabel = this->getChildByID("simple-player-price-label");
-    if (priceLabel && dynamic_cast<CCLabelBMFont*>(priceLabel)) {
-        static_cast<CCLabelBMFont*>(priceLabel)->setString("Click to Buy - 1000 diamond shards");
-        static_cast<CCLabelBMFont*>(priceLabel)->setColor(ccWHITE);
+    if (auto priceBM = typeinfo_cast<CCLabelBMFont*>(priceLabel)) {
+        priceBM->setString("Click to Buy - 1000 diamond shards", true);
+        priceBM->setColor(ccWHITE);
     }
+    
+    // Show icons & reset question marks again after restock
+    if (auto q1n = this->getChildByID("question-mark-1")) {
+        if (auto q1 = typeinfo_cast<CCLabelBMFont*>(q1n)) {
+            q1->setString("?", true);
+            q1->setColor(ccWHITE);
+            q1->setScale(.8f);
+            q1->setVisible(true);
+        }
+    }
+    if (auto q2n = this->getChildByID("question-mark-2")) {
+        if (auto q2 = typeinfo_cast<CCLabelBMFont*>(q2n)) {
+            q2->setString("?", true);
+            q2->setColor(ccWHITE);
+            q2->setScale(.8f);
+            q2->setVisible(true);
+        }
+    }
+    if (auto q3n = this->getChildByID("question-mark-3")) {
+        if (auto q3 = typeinfo_cast<CCLabelBMFont*>(q3n)) {
+            q3->setString("?", true);
+            q3->setColor(ccWHITE);
+            q3->setScale(.8f);
+            q3->setVisible(true);
+        }
+    }
+    if (auto i1 = this->getChildByID("simple-player-icon-1")) i1->setVisible(true);
+    if (auto i2 = this->getChildByID("simple-player-icon-2")) i2->setVisible(true);
+    if (auto i3 = this->getChildByID("simple-player-icon-3")) i3->setVisible(true);
     
     // Show a notification about the restock
     geode::Notification::create("Shop Restocked!", geode::NotificationIcon::Success, 3.0f)->show();

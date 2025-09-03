@@ -1,9 +1,18 @@
 #include "SimplePlayerInfo.hpp"
 #include <Geode/Geode.hpp>
+#include <Geode/binding/GameManager.hpp>
+#include <sstream>
+#include <cstdlib>
 
-SimplePlayerInfo *SimplePlayerInfo::create(SimplePlayer *player)
+using namespace geode::prelude;
+
+SimplePlayerInfo *SimplePlayerInfo::create(SimplePlayer *player, int slotIndex)
 {
     auto ret = new SimplePlayerInfo();
+
+    // Set slot index BEFORE init so setup() can load per-slot data
+    if (ret)
+        ret->m_slotIndex = slotIndex;
 
     if (ret && ret->initAnchored(250.0f, 200.0f, player))
     {
@@ -18,9 +27,17 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
 {
     m_displayedPlayer = player;
 
-    // Initialize maturity data
-    m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
-    m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed", 0);
+    // Load per-slot maturity data if slot is valid, else fallback to global
+    if (m_slotIndex >= 0)
+    {
+        m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(m_slotIndex), 0);
+        m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed_" + std::to_string(m_slotIndex), 0);
+    }
+    else
+    {
+        m_maturityLevel = Mod::get()->getSavedValue<int>("player_maturity", 0);
+        m_orbsFeeded = Mod::get()->getSavedValue<int>("player_orbs_fed", 0);
+    }
 
     // Determine current requirement based on maturity level
     if (m_maturityLevel < 1)
@@ -46,11 +63,104 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
 
     this->setTitle("Player Info");
 
-    // Display player with current icon
-    auto displayPlayer = SimplePlayer::create(1); // Fixed cube icon
+    // Display the clicked player's icon/colors.
+    auto displayPlayer = SimplePlayer::create(1);
+    int iconId = 1;
+    int color1Idx = 1;
+    int color2Idx = 1;
+    // Try to read icon id stored on the clicked SimplePlayer
+    if (m_displayedPlayer)
+    {
+        iconId = m_displayedPlayer->getTag();
+        if (iconId <= 0)
+            iconId = 1;
+    }
+    // If tag wasn't set for some reason, use saved slot data
+    if (m_slotIndex >= 0)
+    {
+        std::string key = "player_" + std::to_string(m_slotIndex);
+        std::string playerInfo = Mod::get()->getSavedValue<std::string>(key, "");
+        if (!playerInfo.empty())
+        {
+            std::stringstream ss(playerInfo);
+            std::string tok;
+            std::vector<int> vals;
+            while (std::getline(ss, tok, ','))
+            {
+                bool ok = true;
+                if (tok.empty())
+                    ok = false;
+                for (char ch : tok)
+                {
+                    if (!(ch == '-' || (ch >= '0' && ch <= '9')))
+                    {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok)
+                {
+                    // std::stoi may still throw on overflow; guard by using std::strtol
+                    char *endp = nullptr;
+                    long v = std::strtol(tok.c_str(), &endp, 10);
+                    if (endp && *endp == '\0')
+                    {
+                        vals.push_back(static_cast<int>(v));
+                    }
+                }
+            }
+            if (vals.size() >= 3)
+            {
+                if (iconId == 1)
+                    iconId = vals[0];
+                color1Idx = vals[1];
+                color2Idx = vals[2];
+            }
+        }
+    }
+    displayPlayer->updatePlayerFrame(iconId, static_cast<IconType>(0));
+    // Apply the saved colors (these are what the garden used for the clicked player)
+    auto gm = GameManager::sharedState();
+    displayPlayer->setColors(gm->colorForIdx(color1Idx), gm->colorForIdx(color2Idx));
     displayPlayer->setScale(1.5f);
     displayPlayer->setPosition(ccp(125, 100));
     this->m_mainLayer->addChild(displayPlayer);
+
+    // Name input above the icon using geode::TextInput
+    m_nameInput = geode::TextInput::create(180.f, "Enter name...", "bigFont.fnt");
+    if (m_nameInput)
+    {
+        // Allow typical name characters
+        m_nameInput->setCommonFilter(geode::CommonFilter::Name);
+        m_nameInput->setMaxCharCount(20);
+        m_nameInput->setTextAlign(geode::TextInputAlign::Center);
+        // Position above the displayed player icon
+        m_nameInput->setPosition({125.f, 150.f});
+        // Load saved name if any
+        std::string savedName;
+        if (m_slotIndex >= 0)
+        {
+            savedName = Mod::get()->getSavedValue<std::string>(
+                "player_name_" + std::to_string(m_slotIndex), "");
+        }
+        else
+        {
+            savedName = Mod::get()->getSavedValue<std::string>("player_name", "");
+        }
+        if (!savedName.empty())
+        {
+            m_nameInput->setString(savedName, false);
+        }
+        // Save on change
+        m_nameInput->setCallback([this](std::string const &value)
+                                 {
+            if (m_slotIndex >= 0) {
+                Mod::get()->setSavedValue("player_name_" + std::to_string(m_slotIndex), value);
+            } else {
+                Mod::get()->setSavedValue("player_name", value);
+            } });
+        this->m_mainLayer->addChild(m_nameInput);
+    }
 
     updateMaturityInfo();
 
