@@ -199,7 +199,7 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_diamondShardsLabel = CCLabelBMFont::create("-", "bigFont.fnt");
     ZenGardenLayer::m_diamondShardsLabel->setScale(0.65f);
     ZenGardenLayer::m_diamondShardsLabel->setID("money-count");
-    ZenGardenLayer::m_diamondShardsLabel->setPosition(windowSize.width / 2, windowSize.height - 300);
+    ZenGardenLayer::m_diamondShardsLabel->setPosition(windowSize.width / 2, windowSize.height / 12);
 
     auto diamondIcon = CCSprite::createWithSpriteFrameName("currencyDiamondIcon_001.png");
     diamondIcon->setScale(0.8f);

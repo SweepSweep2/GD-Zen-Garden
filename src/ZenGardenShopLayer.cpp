@@ -231,8 +231,8 @@ bool ZenGardenShopLayer::init()
 
     this->setID("zen-garden-shop");
 
-    // h
-    CCSpriteFrameCache::sharedSpriteFrameCache()->addSpriteFramesWithFile("GJ_ShopSheet01-uhd.plist");
+    // h (also this is better way to use sprite)
+    CCSpriteFrameCache::sharedSpriteFrameCache()->addSpriteFramesWithFile("GJ_ShopSheet01.plist");
     auto background = CCSprite::createWithSpriteFrameName("shopBG_001.png");
 
     // Custom background (change if there is a better way to do this)
@@ -241,7 +241,12 @@ bool ZenGardenShopLayer::init()
     background->setPosition(ccp(windowSize.width / 2, windowSize.height / 2));
     background->setID("background");
 
+    auto fallbackBG = createLayerBG();
+    fallbackBG->setID("fallback-background");
+    fallbackBG->setColor({78, 25, 0});
+
     this->addChild(background, -5);
+    this->addChild(fallbackBG, -6);
 
     auto exitMenu = CCMenu::create();
     exitMenu->setID("exit-menu");
@@ -417,7 +422,7 @@ bool ZenGardenShopLayer::init()
     this->addChild(questionMark3, 10);
 
     auto statsLabel = CCLabelBMFont::create("Stars / Moons / Diamonds", "bigFont.fnt");
-    statsLabel->setPosition(windowSize.width / 2, windowSize.height - 225);
+    statsLabel->setPosition(windowSize.width / 2, windowSize.height - 215);
     statsLabel->setScale(0.7f);
     statsLabel->setID("stats-label");
 
@@ -425,6 +430,7 @@ bool ZenGardenShopLayer::init()
 
     auto buyStatsMenu = CCMenu::create();
     buyStatsMenu->setID("buy-stats-menu");
+    buyStatsMenu->setPosition(windowSize.width / 2, windowSize.height / 2 - 100);
 
     this->addChild(buyStatsMenu);
 
@@ -438,7 +444,7 @@ bool ZenGardenShopLayer::init()
         menu_selector(ZenGardenShopLayer::onBuyStars));
 
     buyStars->setID("buy-stars");
-    buyStars->setPosition(windowSize.width / 2 - 350, windowSize.height - 430);
+    buyStars->setPosition(-75, 0);
     buyStars->m_baseScale = 1.25f;
     buyStars->setScale(1.25f);
 
@@ -456,7 +462,7 @@ bool ZenGardenShopLayer::init()
         menu_selector(ZenGardenShopLayer::onBuyMoons));
 
     buyMoons->setID("buy-moons");
-    buyMoons->setPosition(windowSize.width / 2 - 284.5, windowSize.height - 430);
+    buyMoons->setPosition(0, 0);
     buyMoons->m_baseScale = 1.25f;
     buyMoons->setScale(1.25f);
 
@@ -472,7 +478,7 @@ bool ZenGardenShopLayer::init()
         menu_selector(ZenGardenShopLayer::onBuyDiamonds));
 
     buyDiamonds->setID("buy-diamonds");
-    buyDiamonds->setPosition(windowSize.width / 2 - 219, windowSize.height - 430);
+    buyDiamonds->setPosition(75, 0);
     buyDiamonds->m_baseScale = 1.25f;
     buyDiamonds->setScale(1.25f);
 
@@ -480,7 +486,7 @@ bool ZenGardenShopLayer::init()
 
     // Add price label for SimplePlayer icons
     auto priceLabel = CCLabelBMFont::create("Click to Buy - 1000 diamond shards", "chatFont.fnt");
-    priceLabel->setPosition(windowSize.width / 2, windowSize.height - 200);
+    priceLabel->setPosition(windowSize.width / 2, windowSize.height / 2 - 35);
     priceLabel->setScale(0.7f);
     priceLabel->setID("simple-player-price-label");
     this->addChild(priceLabel);

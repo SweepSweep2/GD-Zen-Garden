@@ -11,7 +11,7 @@
 			"resources/*.png"
 		]
 	},
-	"id": "sweep.zen-garden",
+	"id": "sweep.zen_garden",
 	"name": "Zen Garden",
 	"version": "v1.0.0",
 	"developers": [
