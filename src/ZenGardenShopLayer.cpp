@@ -77,7 +77,7 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
 
                 auto fmod = FMODAudioEngine::sharedEngine();
                 // @geode-ignore(unknown-resource)
-                fmod->playEffect("reward01.ogg");
+                fmod->playEffect("buyItem01.ogg");
 
                 // FLAlertLayer::create(
                 //     "Purchase Successful",
@@ -136,7 +136,7 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 
                 auto fmod = FMODAudioEngine::sharedEngine();
                 // @geode-ignore(unknown-resource)
-                fmod->playEffect("reward01.ogg");
+                fmod->playEffect("buyItem01.ogg");
 
                 // FLAlertLayer::create(
                 //     "Purchase Successful",
@@ -620,7 +620,7 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject *sender)
                 bool success = false;
                 auto fmod = FMODAudioEngine::sharedEngine();
                 // @geode-ignore(unknown-resource)
-                fmod->playEffect("reward01.ogg");
+                fmod->playEffect("buyItem01.ogg");
                 {
                     auto occupied = ZenGardenLayer::getOccupiedPositions();
                     bool slot0Free = true;

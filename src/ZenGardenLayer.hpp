@@ -26,7 +26,7 @@ public:
     void flashShards();
     void removeCoinSprite(CCNode* sender);
     void tryEmitCoins(int pos);
-    void update(float dt);
+    void update(float dt) override;
     
     // Maturity system methods
     void initializePlayerMaturity();

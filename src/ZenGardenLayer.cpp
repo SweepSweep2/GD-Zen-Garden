@@ -1565,9 +1565,9 @@ void ZenGardenLayer::confirmResetProgress()
     Mod::get()->setSavedValue<int>("player_maturity", 0);
     Mod::get()->setSavedValue<int>("player_orbs_fed", 0);
     Mod::get()->setSavedValue<float>("player_last_orb_feed", 0.0f);
-    Mod::get()->setSavedValue<int>("stars", 2);
-    Mod::get()->setSavedValue<int>("moons", 3);
-    Mod::get()->setSavedValue<int>("diamonds", 4);
+    Mod::get()->setSavedValue<int>("stars", 0);
+    Mod::get()->setSavedValue<int>("moons", 0);
+    Mod::get()->setSavedValue<int>("diamonds", 0);
     Mod::get()->setSavedValue<int>("money", 0);
 
     // Clear purchased players and per-slot data
@@ -1609,9 +1609,9 @@ void ZenGardenLayer::confirmResetProgress()
     m_maturityLevel = 0;
     m_orbsFeeded = 0;
     m_lastOrbFeedTime = 0;
-    m_starCount = 2;
-    m_moonCount = 3;
-    m_diamondCount = 4;
+    m_starCount = 0;
+    m_moonCount = 0;
+    m_diamondCount = 0;
     m_diamondShards = GameStatsManager::sharedState()->getStat("29");
     m_activePos = -1;
 
