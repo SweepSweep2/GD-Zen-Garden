@@ -143,7 +143,7 @@ bool SimplePlayerInfo::setup(SimplePlayer *player)
     if (m_nameInput)
     {
         // Allow typical name characters
-        m_nameInput->setCommonFilter(CommonFilter::Alphabetic);
+        m_nameInput->setCommonFilter(CommonFilter::Name);
         m_nameInput->setMaxCharCount(20);
         m_nameInput->setTextAlign(TextInputAlign::Center);
         m_nameInput->setPosition({125.f, 150.f});
@@ -227,6 +227,7 @@ void SimplePlayerInfo::updateMaturityInfo()
     auto maturityLabel = CCLabelBMFont::create(maturityText.c_str(), "bigFont.fnt");
     maturityLabel->setScale(0.5f);
     maturityLabel->setColor(textColor);
+    maturityLabel->setAlignment(kCCTextAlignmentCenter);
     maturityLabel->setPosition(ccp(125, 50));
     this->m_mainLayer->addChild(maturityLabel);
 
@@ -278,6 +279,7 @@ void SimplePlayerInfo::updateMaturityInfo()
 
     auto requirementLabel = CCLabelBMFont::create(reqText.c_str(), "bigFont.fnt");
     requirementLabel->setScale(0.45f);
+    requirementLabel->setAlignment(kCCTextAlignmentCenter);
     requirementLabel->setPosition(ccp(125, 25));
     this->m_mainLayer->addChild(requirementLabel);
 }
