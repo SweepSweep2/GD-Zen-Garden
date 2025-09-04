@@ -995,8 +995,8 @@ void ZenGardenLayer::tryEmitCoins(int pos)
     // fmod engine
     auto fmod = FMODAudioEngine::sharedEngine();
 
-    // 90% chance for bronze coin
-    if (randomChance <= 90)
+    // 80% chance for bronze coin
+    if (randomChance <= 80)
     {
         fmod->playEffect("gold01.ogg");
         showBronzeCoinReward(pos);
@@ -1004,8 +1004,8 @@ void ZenGardenLayer::tryEmitCoins(int pos)
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
     }
 
-    // 9% chance for silver coin (91-99)
-    if (randomChance >= 91 && randomChance <= 99)
+    // 9% chance for silver coin (81-97)
+    if (randomChance >= 81 && randomChance <= 97)
     {
         fmod->playEffect("gold01.ogg");
         showSilverCoinReward(pos);
@@ -1013,12 +1013,12 @@ void ZenGardenLayer::tryEmitCoins(int pos)
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
         flashShards();
     }
-    // 1% chance for gold coin (100)
-    else if (randomChance == 100)
+    // 3% chance for gold coin (98-100)
+    else if (randomChance >= 98 && randomChance <= 100)
     {
         fmod->playEffect("gold02.ogg");
         showGoldCoinReward(pos);
-        ZenGardenLayer::m_diamondShards += 1000;
+        ZenGardenLayer::m_diamondShards += 500;
         GameStatsManager::sharedState()->setStat("29", ZenGardenLayer::m_diamondShards);
         flashShards();
     }
@@ -1767,6 +1767,7 @@ void ZenGardenLayer::keyBackClicked()
 void ZenGardenLayer::onBack(CCObject *sender)
 {
     CCDirector::sharedDirector()->popScene();
+    GameManager::sharedState()->fadeInMenuMusic();
 }
 
 void ZenGardenLayer::onShop(CCObject *sender)

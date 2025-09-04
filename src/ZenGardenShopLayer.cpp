@@ -25,6 +25,7 @@ ZenGardenShopLayer *ZenGardenShopLayer::create()
 
 void ZenGardenShopLayer::onBack(CCObject *sender)
 {
+    GameManager::sharedState()->fadeInMenuMusic();
     CCDirector::sharedDirector()->popScene();
 }
 
@@ -37,7 +38,7 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
     {
         FLAlertLayer::create(
             "Insufficient Funds",
-            "You need 100 diamond shards to purchase 5 <cy>stars</c>!",
+            "You need 100 diamond shards to purchase 10 <cy>stars</c>!",
             "OK")
             ->show();
         return;
@@ -45,7 +46,7 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
 
     geode::createQuickPopup(
         "Buy Stars",
-        "Are you sure you want to buy 5 <cy>stars</c> for 100 diamond shards?",
+        "Are you sure you want to buy 10 <cy>stars</c> for 100 diamond shards?",
         "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
@@ -57,7 +58,7 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
 
                 // Update values
                 currentShards -= cost;
-                currentStars += 5;
+                currentStars += 10;
 
                 // Save the updated values
                 Mod::get()->setSavedValue<int>("money", currentShards);
@@ -89,14 +90,14 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
 }
 void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 {
-    int cost = 200;
+    int cost = 150;
     int currentShards = Mod::get()->getSavedValue<int>("money", 0);
 
     if (currentShards < cost)
     {
         FLAlertLayer::create(
             "Insufficient Funds",
-            "You need 200 diamond shards to purchase 5 <cb>moons</c>!",
+            "You need 150 diamond shards to purchase 10 <cb>moons</c>!",
             "OK")
             ->show();
         return;
@@ -104,7 +105,7 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 
     geode::createQuickPopup(
         "Buy Moons",
-        "Are you sure you want to buy 5 <cb>moons</c> for 200 diamond shards?",
+        "Are you sure you want to buy 10 <cb>moons</c> for 150 diamond shards?",
         "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
@@ -116,7 +117,7 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 
                 // Update values
                 currentShards -= cost;
-                currentMoons += 5;
+                currentMoons += 10;
 
                 // Save the updated values
                 Mod::get()->setSavedValue<int>("money", currentShards);
@@ -149,14 +150,14 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
 
 void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
 {
-    int cost = 500;
+    int cost = 200;
     int currentShards = Mod::get()->getSavedValue<int>("money", 0);
 
     if (currentShards < cost)
     {
         FLAlertLayer::create(
             "Insufficient Funds",
-            "You need 500 diamond shards to purchase 5 <cb>diamonds</c>!",
+            "You need 200 diamond shards to purchase 10 <cb>diamonds</c>!",
             "OK")
             ->show();
         return;
@@ -164,7 +165,7 @@ void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
 
     geode::createQuickPopup(
         "Buy Diamonds",
-        "Are you sure you want to buy 5 <cb>diamonds</c> for 500 diamond shards?",
+        "Are you sure you want to buy 10 <cb>diamonds</c> for 200 diamond shards?",
         "No", "Yes",
         [this, cost](FLAlertLayer *, bool btn2)
         {
@@ -176,7 +177,7 @@ void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
 
                 // Update values
                 currentShards -= cost;
-                currentDiamonds += 5;
+                currentDiamonds += 10;
 
                 // Save the updated values
                 Mod::get()->setSavedValue<int>("money", currentShards);
@@ -484,8 +485,16 @@ bool ZenGardenShopLayer::init()
 
     buyStatsMenu->addChild(buyDiamonds);
 
+    std::string priceLabelString;
+
     // Add price label for SimplePlayer icons
-    auto priceLabel = CCLabelBMFont::create("Click to Buy - 1000 diamond shards", "chatFont.fnt");
+    if (!Mod::get()->getSavedValue<bool>("firstIconBought", false)) {
+        priceLabelString = "Click to Buy - First icon free!";
+    } else {
+        priceLabelString = "Click to Buy - 1000 diamond shards";
+    }
+    
+    auto priceLabel = CCLabelBMFont::create(priceLabelString.c_str(), "chatFont.fnt");
     priceLabel->setPosition(windowSize.width / 2, windowSize.height / 2 - 35);
     priceLabel->setScale(0.7f);
     priceLabel->setID("simple-player-price-label");
@@ -493,6 +502,8 @@ bool ZenGardenShopLayer::init()
 
     // Check purchased items status and update UI
     checkPurchasedItems();
+
+    GameManager::sharedState()->fadeInMusic("shop.mp3");
 
     return true;
 }
@@ -600,23 +611,27 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject *sender)
         return;
     }
 
-    int cost = 1000;
-    int currentShards = Mod::get()->getSavedValue<int>("money", 0);
+    int cost = 0;
+    // Detect whether this is the first icon bought ever.
+    if (Mod::get()->getSavedValue<bool>("firstIconBought")) {
+        int cost = 1000;
+        int currentShards = Mod::get()->getSavedValue<int>("money", 0);
 
-    if (currentShards < cost)
-    {
-        FLAlertLayer::create(
-            "Insufficient Funds",
-            "You need 1000 diamond shards to purchase a <cr>mystery player</c>!",
-            "OK")
-            ->show();
-        return;
+        if (currentShards < cost)
+        {
+            FLAlertLayer::create(
+                "Insufficient Funds",
+                "You need 1000 diamond shards to purchase a <cr>mystery player</c>!",
+                "OK")
+                ->show();
+            return;
+        }
     }
 
     // Create popup for confirmation
     geode::createQuickPopup(
         "Buy Mystery Player",
-        "Are you sure you want to buy a <cr>mystery player</c> for 1000 diamond shards?",
+        Mod::get()->getSavedValue<bool>("firstIconBought") ? "Are you sure you want to buy a <cr>mystery player</c> for 1000 diamond shards?" : "Are you sure you want to buy a <cr>mystery player</c> for free?",
         "No", "Yes",
         [this, cost, slotToPurchase](FLAlertLayer *, bool btn2)
         {
@@ -678,14 +693,20 @@ void ZenGardenShopLayer::onBuySimplePlayer(CCObject *sender)
                 // Get current values
                 int currentShards = Mod::get()->getSavedValue<int>("money", 0);
 
-                // Update values
-                currentShards -= cost;
+                // Detect whether this is the first icon bought ever.
+                if (!Mod::get()->getSavedValue<bool>("firstIconBought")) {
+                    // Update values
+                    currentShards -= cost;
 
-                // Save the updated values
-                Mod::get()->setSavedValue<int>("money", currentShards);
+                    // Save the updated values
+                    Mod::get()->setSavedValue<int>("money", currentShards);
 
-                // Update diamond shards count in ZenGardenLayer
-                ZenGardenLayer::m_diamondShards = currentShards;
+                    // Update diamond shards count in ZenGardenLayer
+                    ZenGardenLayer::m_diamondShards = currentShards;
+                }
+
+                // Update the fact that the first icon has been bought
+                Mod::get()->setSavedValue<bool>("firstIconBought", true);
 
                 // Mark this slot as purchased
                 m_itemPurchased[slotToPurchase] = true;
@@ -865,7 +886,15 @@ void ZenGardenShopLayer::checkPurchasedItems()
             }
             else
             {
-                priceBM->setString("Click to Buy - 1000 diamond shards", true);
+                std::string priceLabelString;
+                
+                if (!Mod::get()->getSavedValue<bool>("firstIconBought", false)) {
+                    priceLabelString = "Click to Buy - First icon free!";
+                } else {
+                    priceLabelString = "Click to Buy - 1000 diamond shards";
+                }
+
+                priceBM->setString(priceLabelString.c_str(), true);
                 priceBM->setColor(ccWHITE);
             }
         }
