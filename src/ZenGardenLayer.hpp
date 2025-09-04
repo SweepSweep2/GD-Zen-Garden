@@ -20,6 +20,8 @@ public:
     void onFeedMoons(CCObject *sender);
     void onFeedDiamonds(CCObject *sender);
     void onSimplePlayerClicked(CCObject *sender);
+    void onToggleMoveMode(CCObject* sender);
+    void onSlotClicked(CCObject* sender);
     void showBronzeCoinReward(int pos);
     void showSilverCoinReward(int pos);
     void showGoldCoinReward(int pos);
@@ -59,6 +61,15 @@ public:
     void reloadGardenFromSaves();
     void updateSlotRequirementUI(int pos);
     void sellPlayerAtPos(int pos);
+    bool isSlotOccupied(int pos);
+    void movePlayerTo(int fromPos, int toPos);
+
+    // Move selection highlight helpers
+    void startMoveSelectionFlash(int pos);
+    void stopMoveSelectionFlash();
+    void applyYellowColor(CCNode* node);
+    void applyOriginalColors(CCNode* node);
+    void refreshSlotsMenuInteractable();
 
     // Active player tracking (slot index 0-7), -1 when none
     int m_activePos = -1;
@@ -78,6 +89,11 @@ public:
     static CCLabelBMFont *m_diamondShardsLabel;
     CCSprite *m_diamondCurrencyIcon;
     SimplePlayer *m_simplePlayer;
+    // Move Mode state
+    bool m_moveMode = false;
+    int m_moveSourcePos = -1;
+    int m_moveFlashPos = -1; // currently flashing selection pos, -1 if none
+    CCLabelBMFont* m_moveModeLabel = nullptr;
     
     // Maturity system variables
     int m_maturityLevel = 0; // 0-5, with 5 being fully mature

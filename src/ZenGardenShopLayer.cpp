@@ -891,7 +891,7 @@ void ZenGardenShopLayer::checkPurchasedItems()
                 }
                 else
                 {
-                    priceLabelString = "Click to Buy - 1000 diamond shards";
+                    priceLabelString = "Click to Buy - 1000 Diamond Shards";
                 }
 
                 priceBM->setString(priceLabelString.c_str(), true);
@@ -963,7 +963,7 @@ void ZenGardenShopLayer::restockItems()
     auto priceLabel = this->getChildByID("simple-player-price-label");
     if (auto priceBM = typeinfo_cast<CCLabelBMFont *>(priceLabel))
     {
-        priceBM->setString("Click to Buy - 1000 diamond shards", true);
+        priceBM->setString("Click to Buy - 1000 Diamond Shards", true);
         priceBM->setColor(ccWHITE);
     }
 

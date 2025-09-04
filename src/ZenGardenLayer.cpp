@@ -184,6 +184,19 @@ bool ZenGardenLayer::init()
     feedDiamondsButton->setPosition((windowSize.width / -2) + 144, (windowSize.height / 2) - 25);
     topBarMenu->addChild(feedDiamondsButton);
 
+    // Move Mode toggle button
+    auto moveModeButton = CCMenuItemSpriteExtra::create(
+        EditorButtonSprite::createWithSpriteFrameName(
+            "GJ_chatBtn_02_001.png",
+            1.0f,
+            EditorBaseColor::Salmon,
+            {}),
+        this,
+        menu_selector(ZenGardenLayer::onToggleMoveMode));
+    moveModeButton->setID("move-mode-button");
+    moveModeButton->setPosition((windowSize.width / -2) + 190.5f, (windowSize.height / 2) - 25);
+    topBarMenu->addChild(moveModeButton);
+
     ZenGardenLayer::m_diamondsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
     ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     ZenGardenLayer::m_diamondsHoverSprite->setID("diamonds-hover");
@@ -209,6 +222,18 @@ bool ZenGardenLayer::init()
     this->addChild(diamondIcon);
     this->addChild(ZenGardenLayer::m_diamondShardsLabel);
     m_diamondCurrencyIcon = diamondIcon;
+
+    // Move Mode label (top center), hidden by default
+    m_moveModeLabel = CCLabelBMFont::create("Move Mode", "goldFont.fnt");
+    if (m_moveModeLabel)
+    {
+        m_moveModeLabel->setID("move-mode-label");
+        m_moveModeLabel->setPosition({windowSize.width / 2, windowSize.height - 20});
+        m_moveModeLabel->setScale(0.7f);
+        m_moveModeLabel->setVisible(false);
+        m_moveModeLabel->setAlignment(kCCTextAlignmentCenter);
+        this->addChild(m_moveModeLabel, 5);
+    }
 
     auto iconBackgrounds = CCSpriteBatchNode::create("GJ_button_05.png");
     iconBackgrounds->setZOrder(-1);
@@ -251,11 +276,47 @@ bool ZenGardenLayer::init()
 
     this->addChild(iconBackgrounds);
 
+    // Clickable transparent buttons for each slot; enabled only when slot is empty.
+    auto slotsMenu = CCMenu::create();
+    slotsMenu->setPosition({0, 0});
+    slotsMenu->setID("slots-menu");
+    this->addChild(slotsMenu, 0); // below players-menu
+
+    for (int i = 0; i < 32; i++)
+    {
+        int sx = xPositions[i % 8];
+        int sy;
+        if (i < 8)
+            sy = 75;
+        else if (i < 16)
+            sy = 25;
+        else if (i < 24)
+            sy = -25;
+        else
+            sy = -75;
+
+        sx = (windowSize.width / 2) + sx;
+        sy = (windowSize.height / 2) + sy;
+
+        auto slotSprite = CCSprite::create("GJ_button_05.png");
+        if (slotSprite)
+        {
+            slotSprite->setOpacity(0); // invisible hitbox
+            auto slotItem = CCMenuItemSpriteExtra::create(slotSprite, this, menu_selector(ZenGardenLayer::onSlotClicked));
+            slotItem->setTag(i);
+            slotItem->setPosition(ccp(sx, sy));
+            slotsMenu->addChild(slotItem);
+        }
+    }
+
     // Build menu of purchased players
     auto playersMenu = CCMenu::create();
     playersMenu->setPosition({0, 0});
     playersMenu->setID("players-menu");
     this->addChild(playersMenu);
+
+    // Ensure slot hitboxes reflect occupancy
+    refreshSlotsMenuInteractable();
 
     // Load all saved SimplePlayers; if none, leave the garden empty
     std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
@@ -391,6 +452,22 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
     if (auto mi = typeinfo_cast<CCMenuItem *>(item))
     {
         clickedPos = mi->getTag();
+    }
+
+    // In Move Mode, clicking a player picks it as the source
+    if (m_moveMode && clickedPos >= 0)
+    {
+        // If another player was selected, stop its flashing and restore colors
+        if (m_moveFlashPos >= 0 && m_moveFlashPos != clickedPos)
+            stopMoveSelectionFlash();
+        m_moveSourcePos = clickedPos;
+        std::string playerName = Mod::get()->getSavedValue<std::string>("player_name_" + std::to_string(clickedPos), "");
+        if (playerName.empty()) playerName = "Player";
+        if (m_moveModeLabel)
+            m_moveModeLabel->setString(("Move Mode\n(" + playerName + ")").c_str(), true);
+        startMoveSelectionFlash(clickedPos);
+        //Notification::create("Selected " + playerName + ". Choose an empty slot.", NotificationIcon::Info, 1.f)->show();
+        return;
     }
 
     // If a feed item is selected, apply it to the clicked slot directly
@@ -791,6 +868,9 @@ void ZenGardenLayer::reloadGardenFromSaves()
 
     // Recreate overlays for every player
     displayRequirementSprite();
+    refreshSlotsMenuInteractable();
+    // Keep selection flash in sync after reload
+    if (m_moveFlashPos >= 0) startMoveSelectionFlash(m_moveFlashPos);
 }
 
 void ZenGardenLayer::updateSlotRequirementUI(int pos)
@@ -799,10 +879,173 @@ void ZenGardenLayer::updateSlotRequirementUI(int pos)
     displayRequirementSprite();
 }
 
+void ZenGardenLayer::onToggleMoveMode(CCObject* sender)
+{
+    // Toggle mode and update label visibility
+    m_moveMode = !m_moveMode;
+    m_moveSourcePos = -1;
+    // Clear any selection flash when toggling off
+    if (!m_moveMode)
+    {
+        stopMoveSelectionFlash();
+    }
+    if (m_moveModeLabel)
+    {
+        m_moveModeLabel->setVisible(m_moveMode);
+        if (!m_moveMode)
+            m_moveModeLabel->setString("Move Mode", true);
+    }
+
+    // Let user know
+    //Notification::create(m_moveMode ? "Move Mode enabled" : "Move Mode disabled", NotificationIcon::Info, 1.f)->show();
+    refreshSlotsMenuInteractable();
+}
+
+bool ZenGardenLayer::isSlotOccupied(int pos)
+{
+    // Check positions list quickly
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    if (positionsStr.empty()) return false;
+    std::stringstream ss(positionsStr);
+    std::string token;
+    while (std::getline(ss, token, ','))
+    {
+        if (token == std::to_string(pos)) return true;
+    }
+    return false;
+}
+
+void ZenGardenLayer::movePlayerTo(int fromPos, int toPos)
+{
+    if (fromPos == toPos || fromPos < 0 || toPos < 0 || fromPos >= 32 || toPos >= 32)
+        return;
+
+    // Ensure destination empty
+    if (isSlotOccupied(toPos))
+    {
+        Notification::create("Destination slot is not empty", NotificationIcon::Error, 1.f)->show();
+        return;
+    }
+
+    // Swap position in the positions list: replace fromPos with toPos
+    std::string positionsStr = Mod::get()->getSavedValue<std::string>("player_positions", "");
+    std::string out;
+    if (!positionsStr.empty())
+    {
+        std::stringstream ss(positionsStr);
+        std::string token;
+        bool first = true;
+        while (std::getline(ss, token, ','))
+        {
+            int p = -1;
+            if (!token.empty())
+            {
+                char* endp = nullptr;
+                long v = std::strtol(token.c_str(), &endp, 10);
+                if (endp && *endp == '\0') p = static_cast<int>(v);
+            }
+            if (p < 0) continue;
+            if (p == fromPos) p = toPos; // move
+            if (!first) out += ",";
+            out += std::to_string(p);
+            first = false;
+        }
+    }
+    Mod::get()->setSavedValue<std::string>("player_positions", out);
+
+    // Move all per-slot data keys from fromPos to toPos
+    auto moveStr = [&](const std::string& key){
+        std::string val = Mod::get()->getSavedValue<std::string>(key + std::to_string(fromPos), "");
+        Mod::get()->setSavedValue<std::string>(key + std::to_string(toPos), val);
+        Mod::get()->setSavedValue<std::string>(key + std::to_string(fromPos), "");
+    };
+    auto moveInt = [&](const std::string& key){
+        int val = Mod::get()->getSavedValue<int>(key + std::to_string(fromPos), 0);
+        Mod::get()->setSavedValue<int>(key + std::to_string(toPos), val);
+        Mod::get()->setSavedValue<int>(key + std::to_string(fromPos), 0);
+    };
+    auto moveI64 = [&](const std::string& key){
+        int64_t val = Mod::get()->getSavedValue<int64_t>(key + std::to_string(fromPos), 0);
+        Mod::get()->setSavedValue<int64_t>(key + std::to_string(toPos), val);
+        Mod::get()->setSavedValue<int64_t>(key + std::to_string(fromPos), 0);
+    };
+
+    moveStr("player_");
+    moveStr("player_name_");
+    moveInt("player_maturity_");
+    moveInt("player_orbs_fed_");
+    moveI64("player_last_orb_feed_");
+    moveInt("player_stars_fed_");
+    moveInt("player_moons_fed_");
+    moveInt("player_diamonds_fed_");
+    moveI64("player_last_star_feed_");
+    moveI64("player_last_moon_feed_");
+    moveI64("player_last_diamond_feed_");
+
+    // Update UI: reload and overlays
+    reloadGardenFromSaves();
+    displayRequirementSprite();
+    refreshSlotsMenuInteractable();
+
+    // Reset move state
+    m_moveSourcePos = -1;
+    stopMoveSelectionFlash();
+    if (m_moveMode && m_moveModeLabel)
+        m_moveModeLabel->setString("Move Mode", true);
+    //Notification::create("Player moved", NotificationIcon::Success, 1.f)->show();
+}
+
+void ZenGardenLayer::onSlotClicked(CCObject* sender)
+{
+    if (!m_moveMode)
+        return;
+    int dst = -1;
+    if (auto mi = typeinfo_cast<CCMenuItem*>(sender))
+        dst = mi->getTag();
+    if (dst < 0) return;
+
+    if (m_moveSourcePos < 0)
+    {
+        //Notification::create("Select a player first", NotificationIcon::Warning, 1.f)->show();
+        return;
+    }
+    if (isSlotOccupied(dst))
+    {
+        //Notification::create("That slot is already occupied", NotificationIcon::Error, 1.f)->show();
+        return;
+    }
+    movePlayerTo(m_moveSourcePos, dst);
+}
+
+void ZenGardenLayer::refreshSlotsMenuInteractable()
+{
+    auto slotsMenu = this->getChildByID("slots-menu");
+    if (!slotsMenu) return;
+    if (auto children = slotsMenu->getChildren())
+    {
+        for (unsigned int i = 0; i < children->count(); ++i)
+        {
+            auto node = static_cast<CCNode*>(children->objectAtIndex(i));
+            int pos = -1;
+            if (auto mi = typeinfo_cast<CCMenuItem*>(node)) pos = mi->getTag();
+            if (pos < 0) continue;
+            bool enable = m_moveMode && !isSlotOccupied(pos);
+            node->setVisible(enable); // show invisible hitboxes only when useful
+        }
+    }
+}
+
 void ZenGardenLayer::sellPlayerAtPos(int pos)
 {
     if (pos < 0 || pos >= 32)
         return;
+
+    // If the sold player is currently flashing selection, stop flashing and reset label
+    if (m_moveFlashPos == pos) {
+        stopMoveSelectionFlash();
+        if (m_moveMode && m_moveModeLabel)
+            m_moveModeLabel->setString("Move Mode", true);
+    }
 
     // Compute payout
     int maturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
@@ -900,6 +1143,111 @@ void ZenGardenLayer::sellPlayerAtPos(int pos)
 
     // Refresh overlays
     displayRequirementSprite();
+}
+
+// Highlight the player at pos with a flashing yellow tint
+void ZenGardenLayer::startMoveSelectionFlash(int pos)
+{
+    // Stop existing
+    stopMoveSelectionFlash();
+    if (pos < 0 || pos >= 32) return;
+    auto sp = getPlayerNodeAtPos(pos);
+    if (!sp) return;
+    m_moveFlashPos = pos;
+    // Build a repeating color-swap sequence using SimplePlayer::setColors for both primary and secondary
+    auto delay = CCDelayTime::create(0.25f);
+    auto toYellow = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::applyYellowColor));
+    auto toOriginal = CCCallFuncN::create(this, callfuncN_selector(ZenGardenLayer::applyOriginalColors));
+    auto seq = CCSequence::create(toYellow, delay, toOriginal, delay, nullptr);
+    auto repeat = CCRepeatForever::create(seq);
+    sp->runAction(repeat);
+}
+
+// Remove flashing highlight from whichever player is currently selected
+void ZenGardenLayer::stopMoveSelectionFlash()
+{
+    if (m_moveFlashPos < 0) return;
+    int flashedPos = m_moveFlashPos;
+    auto sp = getPlayerNodeAtPos(flashedPos);
+    m_moveFlashPos = -1;
+    if (!sp) return;
+    sp->stopAllActions();
+    // Reset tint/opacity to defaults and restore original colors
+    sp->setColor({255, 255, 255});
+    sp->setOpacity(255);
+    // Restore player colors by reapplying saved color indices
+    // Fetch player info string to restore color indices
+    std::string info = Mod::get()->getSavedValue<std::string>("player_" + std::to_string(flashedPos), "");
+    // If we don't have reliable info for the flashing player, just set to white
+    if (info.empty())
+    {
+        sp->setColor({255,255,255});
+        return;
+    }
+    std::stringstream ss(info);
+    std::string tok;
+    std::vector<int> vals;
+    while (std::getline(ss, tok, ','))
+    {
+        if (!tok.empty())
+        {
+            char* endp = nullptr;
+            long v = std::strtol(tok.c_str(), &endp, 10);
+            if (endp && *endp == '\0') vals.push_back(static_cast<int>(v));
+        }
+    }
+    if (vals.size() >= 3)
+    {
+        auto gm = GameManager::sharedState();
+        auto c1 = gm->colorForIdx(vals[1]);
+        auto c2 = gm->colorForIdx(vals[2]);
+        sp->setColors(c1, c2);
+    }
+}
+
+// Callback: set both primary and secondary colors to yellow for flashing
+void ZenGardenLayer::applyYellowColor(CCNode* node)
+{
+    auto sp = typeinfo_cast<SimplePlayer*>(node);
+    if (!sp) return;
+    ccColor3B yellow = {255, 255, 0};
+    sp->setColors(yellow, yellow);
+}
+
+// Callback: restore original primary and secondary colors from saved indices
+void ZenGardenLayer::applyOriginalColors(CCNode* node)
+{
+    auto sp = typeinfo_cast<SimplePlayer*>(node);
+    if (!sp) return;
+    int pos = -1;
+    if (auto parentItem = typeinfo_cast<CCMenuItem*>(sp->getParent()))
+        pos = parentItem->getTag();
+    if (pos < 0) return;
+    std::string info = Mod::get()->getSavedValue<std::string>("player_" + std::to_string(pos), "");
+    if (info.empty())
+    {
+        sp->setColor({255,255,255});
+        return;
+    }
+    std::stringstream ss(info);
+    std::string tok;
+    std::vector<int> vals;
+    while (std::getline(ss, tok, ','))
+    {
+        if (!tok.empty())
+        {
+            char* endp = nullptr;
+            long v = std::strtol(tok.c_str(), &endp, 10);
+            if (endp && *endp == '\0') vals.push_back(static_cast<int>(v));
+        }
+    }
+    if (vals.size() >= 3)
+    {
+        auto gm = GameManager::sharedState();
+        auto c1 = gm->colorForIdx(vals[1]);
+        auto c2 = gm->colorForIdx(vals[2]);
+        sp->setColors(c1, c2);
+    }
 }
 
 void ZenGardenLayer::showBronzeCoinReward(int pos)
