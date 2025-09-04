@@ -1547,12 +1547,12 @@ void ZenGardenLayer::update(float dt)
                 }
                 else if (perMaturity >= 5)
                 {
-                    // Allow diamond feeding at 5+; show icon when off cooldown, no label
+                    // At 5+, requires moons but no further leveling; show moon icon only when off cooldown, no label
                     int levelForCooldown = 5;
                     auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
                                            std::chrono::system_clock::now().time_since_epoch())
                                            .count();
-                    int64_t last = Mod::get()->getSavedValue<int64_t>("player_last_diamond_feed_" + std::to_string(pos), 0);
+                    int64_t last = Mod::get()->getSavedValue<int64_t>("player_last_moon_feed_" + std::to_string(pos), 0);
                     int required = 17 * (1 << levelForCooldown);
                     if (currentTime - last < required)
                     {
@@ -1561,7 +1561,7 @@ void ZenGardenLayer::update(float dt)
                     }
                     else if (!icon)
                     {
-                        auto newIcon = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
+                        auto newIcon = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
                         if (newIcon)
                         {
                             newIcon->setID("req-icon");
@@ -1687,6 +1687,27 @@ void ZenGardenLayer::cheat()
     flashShards();
 }
 
+// Clears all per-slot feed cooldown timestamps so all players can be fed immediately
+void ZenGardenLayer::clearAllFeedCooldowns()
+{
+    // Gather occupied positions and zero out their last-feed timers
+    auto positions = ZenGardenLayer::getOccupiedPositions();
+    if (positions)
+    {
+        for (unsigned int i = 0; i < positions->count(); ++i)
+        {
+            int pos = static_cast<CCInteger *>(positions->objectAtIndex(i))->getValue();
+            Mod::get()->setSavedValue<int64_t>("player_last_orb_feed_" + std::to_string(pos), 0);
+            Mod::get()->setSavedValue<int64_t>("player_last_star_feed_" + std::to_string(pos), 0);
+            Mod::get()->setSavedValue<int64_t>("player_last_moon_feed_" + std::to_string(pos), 0);
+            Mod::get()->setSavedValue<int64_t>("player_last_diamond_feed_" + std::to_string(pos), 0);
+        }
+    }
+
+    // Refresh requirement overlays to reflect no cooldown
+    displayRequirementSprite();
+}
+
 // Get an array of positions that currently have SimplePlayer icons
 CCArray *ZenGardenLayer::getOccupiedPositions()
 {
@@ -1801,6 +1822,14 @@ void ZenGardenLayer::keyDown(enumKeyCodes key)
     if (key == KEY_J && isCheat)
     {
         cheat();
+    }
+
+    // clear all feed cooldowns when cheats are enabled
+    if (key == KEY_K && isCheat)
+    {
+        clearAllFeedCooldowns();
+        Notification::create("All feed cooldowns cleared.", NotificationIcon::Success, 1.f)->show();
+        return;
     }
 
     CCLayer::keyDown(key);

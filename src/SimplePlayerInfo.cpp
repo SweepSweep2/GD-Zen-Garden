@@ -272,8 +272,8 @@ void SimplePlayerInfo::updateMaturityInfo()
     }
     else
     {
-        // Fully grown but still accepts diamonds
-        reqText = "Fully Grown (still accepts Moons)";
+        // Fully grown but still accepts moons
+        reqText = "Fully Grown\n(Needs: Moons)";
     }
 
     auto requirementLabel = CCLabelBMFont::create(reqText.c_str(), "bigFont.fnt");

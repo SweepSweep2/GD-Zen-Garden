@@ -50,6 +50,7 @@ public:
     
     // Cheat functionality
     void cheat();
+    void clearAllFeedCooldowns();
     void keyDown(enumKeyCodes key) override;
 
     // SimplePlayer management
