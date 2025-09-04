@@ -518,10 +518,51 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
                 Notification::create(playerName + " is on feeding cooldown", NotificationIcon::Loading, 1.f)->show();
             }
         }
-        // Level 3-4: Needs 5 diamonds per level with cooldown; Level 5+: allow diamond feeds with cooldown but no level-up
-        else if (maturity >= 3 && ZenGardenLayer::m_selectedItem == 4)
+        // Level 5+: requires moons instead of diamonds, with cooldown; no further level-ups
+        else if (maturity >= 5 && ZenGardenLayer::m_selectedItem == 3)
         {
-            int levelForCooldown = maturity >= 5 ? 5 : maturity; // cap at 5 for continued feeding
+            int levelForCooldown = 5; // cap
+            auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
+                                   std::chrono::system_clock::now().time_since_epoch())
+                                   .count();
+            int64_t lastFeed = Mod::get()->getSavedValue<int64_t>("player_last_moon_feed_" + std::to_string(clickedPos), 0);
+            int required = 17 * (1 << levelForCooldown);
+            if (currentTime - lastFeed >= required)
+            {
+                if (ZenGardenLayer::m_moonCount > 0)
+                {
+                    ZenGardenLayer::m_moonCount -= 1;
+                    Mod::get()->setSavedValue<int>("moons", ZenGardenLayer::m_moonCount);
+
+                    int moonsFed = Mod::get()->getSavedValue<int>("player_moons_fed_" + std::to_string(clickedPos), 0) + 1;
+                    Mod::get()->setSavedValue<int>("player_moons_fed_" + std::to_string(clickedPos), moonsFed);
+                    Mod::get()->setSavedValue<int64_t>("player_last_moon_feed_" + std::to_string(clickedPos), currentTime);
+
+                    // No level-up beyond 5
+                    validFeed = true;
+                }
+                else
+                {
+                    Notification::create("Not Enough Moons", NotificationIcon::Warning, 1.f)->show();
+                }
+            }
+            else
+            {
+                int remaining = required - static_cast<int>(currentTime - lastFeed);
+                if (remaining < 0)
+                    remaining = 0;
+                std::string playerName = Mod::get()->getSavedValue<std::string>(
+                    "player_name_" + std::to_string(clickedPos), "");
+                if (playerName.empty())
+                    playerName = "Player";
+                log::debug("Feeding Cooldown (pos {}): {} seconds remaining", clickedPos, remaining);
+                Notification::create(playerName + " is on feeding cooldown", NotificationIcon::Loading, 1.f)->show();
+            }
+        }
+        // Level 3-4: Needs 5 diamonds per level with cooldown
+        else if ((maturity == 3 || maturity == 4) && ZenGardenLayer::m_selectedItem == 4)
+        {
+            int levelForCooldown = maturity; // 3 or 4
             auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
                                    std::chrono::system_clock::now().time_since_epoch())
                                    .count();
@@ -574,11 +615,10 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
                 message = "needs stars.";
             else if (maturity == 2)
                 message = "needs moons.";
-            else if (maturity < 5)
+            else if (maturity == 3 || maturity == 4)
                 message = "needs diamonds.";
             else
-                message = "Player fully mature.";
-            // player's given name
+                message = "needs moons.";
             std::string playerName = Mod::get()->getSavedValue<std::string>(
                 "player_name_" + std::to_string(clickedPos), "");
             if (playerName.empty())
@@ -998,6 +1038,7 @@ void ZenGardenLayer::tryEmitCoins(int pos)
     // 80% chance for bronze coin
     if (randomChance <= 80)
     {
+        // @geode-ignore(unknown-resource)
         fmod->playEffect("gold01.ogg");
         showBronzeCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 10;
@@ -1007,6 +1048,7 @@ void ZenGardenLayer::tryEmitCoins(int pos)
     // 9% chance for silver coin (81-97)
     if (randomChance >= 81 && randomChance <= 97)
     {
+        // @geode-ignore(unknown-resource)
         fmod->playEffect("gold01.ogg");
         showSilverCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 100;
@@ -1016,6 +1058,7 @@ void ZenGardenLayer::tryEmitCoins(int pos)
     // 3% chance for gold coin (98-100)
     else if (randomChance >= 98 && randomChance <= 100)
     {
+        // @geode-ignore(unknown-resource)
         fmod->playEffect("gold02.ogg");
         showGoldCoinReward(pos);
         ZenGardenLayer::m_diamondShards += 500;
@@ -1060,9 +1103,7 @@ void ZenGardenLayer::displayRequirementSprite()
         auto item = static_cast<CCNode *>(children->objectAtIndex(i));
         int pos = -1;
         if (auto mi = typeinfo_cast<CCMenuItem *>(item))
-        {
             pos = mi->getTag();
-        }
         if (pos < 0 || pos >= 32)
             continue;
 
@@ -1073,20 +1114,16 @@ void ZenGardenLayer::displayRequirementSprite()
             item->removeChild(oldLabel);
 
         int perMaturity = Mod::get()->getSavedValue<int>("player_maturity_" + std::to_string(pos), 0);
-
         CCSprite *icon = nullptr;
+
         if (perMaturity < 1)
         {
-            // For babies: keep label visible regardless of cooldown; hide only the icon when on cooldown
             bool canFeed = canFeedOrbForPos(pos);
             if (canFeed)
-            {
                 icon = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
-            }
         }
         else if (perMaturity < 2)
         {
-            // Level 1: stars, hide icon during cooldown but keep label
             auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
                                    std::chrono::system_clock::now().time_since_epoch())
                                    .count();
@@ -1107,14 +1144,24 @@ void ZenGardenLayer::displayRequirementSprite()
         }
         else
         {
-            int levelForCooldown = perMaturity >= 5 ? 5 : perMaturity;
             auto currentTime = std::chrono::duration_cast<std::chrono::seconds>(
                                    std::chrono::system_clock::now().time_since_epoch())
                                    .count();
-            int64_t last = Mod::get()->getSavedValue<int64_t>("player_last_diamond_feed_" + std::to_string(pos), 0);
-            int required = 17 * (1 << levelForCooldown);
-            if (currentTime - last >= required)
-                icon = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
+            if (perMaturity >= 5)
+            {
+                int64_t last = Mod::get()->getSavedValue<int64_t>("player_last_moon_feed_" + std::to_string(pos), 0);
+                int required = 17 * (1 << 5);
+                if (currentTime - last >= required)
+                    icon = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
+            }
+            else
+            {
+                int levelForCooldown = perMaturity; // 3 or 4
+                int64_t last = Mod::get()->getSavedValue<int64_t>("player_last_diamond_feed_" + std::to_string(pos), 0);
+                int required = 17 * (1 << levelForCooldown);
+                if (currentTime - last >= required)
+                    icon = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
+            }
         }
 
         if (icon)
@@ -1161,7 +1208,7 @@ void ZenGardenLayer::displayRequirementSprite()
                 lbl->setPosition({20.f, 10.f});
                 item->addChild(lbl, 500);
             }
-            // For maturity >=5, allow diamond feeding but no label/progress shown
+            // maturity >= 5: requires moons but no further leveling, so no progress label
         }
     }
 }
