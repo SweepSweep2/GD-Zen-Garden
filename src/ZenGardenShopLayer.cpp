@@ -64,6 +64,9 @@ void ZenGardenShopLayer::onBuyStars(CCObject *sender)
                 Mod::get()->setSavedValue<int>("money", currentShards);
                 Mod::get()->setSavedValue<int>("stars", currentStars);
 
+                // Update diamond shard count
+                GameStatsManager::sharedState()->setStat("29", currentShards);
+
                 // Update diamond shards count in ZenGardenLayer
                 ZenGardenLayer::m_diamondShards = currentShards;
 
@@ -122,6 +125,9 @@ void ZenGardenShopLayer::onBuyMoons(CCObject *sender)
                 // Save the updated values
                 Mod::get()->setSavedValue<int>("money", currentShards);
                 Mod::get()->setSavedValue<int>("moons", currentMoons);
+
+                // Update diamond shard count
+                GameStatsManager::sharedState()->setStat("29", currentShards);
 
                 // Update diamond shards count in ZenGardenLayer
                 ZenGardenLayer::m_diamondShards = currentShards;
@@ -182,6 +188,9 @@ void ZenGardenShopLayer::onBuyDiamonds(CCObject *sender)
                 // Save the updated values
                 Mod::get()->setSavedValue<int>("money", currentShards);
                 Mod::get()->setSavedValue<int>("diamonds", currentDiamonds);
+
+                // Update diamond shard count
+                GameStatsManager::sharedState()->setStat("29", currentShards);
 
                 // Update diamond shards count in ZenGardenLayer
                 ZenGardenLayer::m_diamondShards = currentShards;
