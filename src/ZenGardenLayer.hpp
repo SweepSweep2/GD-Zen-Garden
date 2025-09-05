@@ -87,6 +87,10 @@ public:
     static CCLabelBMFont *m_moonsLabel;
     static CCLabelBMFont *m_diamondsLabel;
     static CCLabelBMFont *m_diamondShardsLabel;
+    CCMenuItemSpriteExtra *m_feedOrbsButton;
+    CCMenuItemSpriteExtra *m_feedStarsButton;
+    CCMenuItemSpriteExtra *m_feedMoonsButton;
+    CCMenuItemSpriteExtra *m_feedDiamondsButton;
     CCSprite *m_diamondCurrencyIcon;
     SimplePlayer *m_simplePlayer;
     // Move Mode state

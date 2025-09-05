@@ -18,22 +18,24 @@ class $modify(ZenGardenMenuLayer, MenuLayer)
 
 	auto marigoldSprite = CCSprite::create("Marigold.png"_spr);
 
-		auto openZenGarden = CCMenuItemSpriteExtra::create(
-			CircleButtonSprite::create(
-				marigoldSprite,
-				CircleBaseColor::Green,
-				CircleBaseSize::MediumAlt),
-			this,
-			menu_selector(ZenGardenMenuLayer::onZenGarden));
+	auto openZenGarden = CCMenuItemSpriteExtra::create(
+		CircleButtonSprite::create(
+			marigoldSprite,
+			CircleBaseColor::Green,
+			CircleBaseSize::MediumAlt),
+		this,
+		menu_selector(ZenGardenMenuLayer::onZenGarden));
 
-		auto menu = this->getChildByID("right-side-menu");
-		menu->addChild(openZenGarden);
+	auto menu = this->getChildByID("right-side-menu");
+	menu->addChild(openZenGarden);
 
-		openZenGarden->setID("open-zen-garden");
+	openZenGarden->setID("open-zen-garden");
 
-		menu->updateLayout();
+	menu->updateLayout();
 
-		return true;
+	GameStatsManager::sharedState()->setStat("29", Mod::get()->getSavedValue<int>("money", GameStatsManager::sharedState()->getStat("29")));
+
+	return true;
 	}
 
 	void onZenGarden(CCObject *)

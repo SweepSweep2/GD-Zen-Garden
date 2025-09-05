@@ -100,7 +100,7 @@ bool ZenGardenLayer::init()
     topBarBG->setColor({0, 36, 91});
     topBarMenu->addChild(topBarBG);
 
-    auto feedOrbsButton = CCMenuItemSpriteExtra::create(
+    ZenGardenLayer::m_feedOrbsButton = CCMenuItemSpriteExtra::create(
         geode::EditorButtonSprite::createWithSpriteFrameName(
             "currencyOrbIcon_001.png",
             1.0f,
@@ -108,9 +108,9 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedOrbs));
-    feedOrbsButton->setID("feed-orbs");
-    feedOrbsButton->setPosition((windowSize.width / -2) + 65.5, (windowSize.height / 2) - 25);
-    topBarMenu->addChild(feedOrbsButton);
+    ZenGardenLayer::m_feedOrbsButton->setID("feed-orbs");
+    ZenGardenLayer::m_feedOrbsButton->setPosition((windowSize.width / -2) + 65.5, (windowSize.height / 2) - 25);
+    topBarMenu->addChild(ZenGardenLayer::m_feedOrbsButton);
 
     ZenGardenLayer::m_orbsHoverSprite = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
     ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
@@ -125,7 +125,7 @@ bool ZenGardenLayer::init()
     orbCount->setScale(0.5f);
     topBarMenu->addChild(orbCount);
 
-    auto feedStarsButton = CCMenuItemSpriteExtra::create(
+    ZenGardenLayer::m_feedStarsButton = CCMenuItemSpriteExtra::create(
         geode::EditorButtonSprite::createWithSpriteFrameName(
             "GJ_starsIcon_001.png",
             1.0f,
@@ -133,9 +133,9 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedStars));
-    feedStarsButton->setID("feed-stars");
-    feedStarsButton->setPosition((windowSize.width / -2) + 105, (windowSize.height / 2) - 25);
-    topBarMenu->addChild(feedStarsButton);
+    ZenGardenLayer::m_feedStarsButton->setID("feed-stars");
+    ZenGardenLayer::m_feedStarsButton->setPosition((windowSize.width / -2) + 105, (windowSize.height / 2) - 25);
+    topBarMenu->addChild(ZenGardenLayer::m_feedStarsButton);
 
     ZenGardenLayer::m_starsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
     ZenGardenLayer::m_starsHoverSprite->setVisible(false);
@@ -149,7 +149,7 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_starsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_starsLabel);
 
-    auto feedMoonsButton = CCMenuItemSpriteExtra::create(
+    ZenGardenLayer::m_feedMoonsButton = CCMenuItemSpriteExtra::create(
         geode::EditorButtonSprite::createWithSpriteFrameName(
             "GJ_moonsIcon_001.png",
             1.0f,
@@ -157,9 +157,9 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedMoons));
-    feedMoonsButton->setID("feed-moons");
-    feedMoonsButton->setPosition((windowSize.width / -2) + 144.5, (windowSize.height / 2) - 25);
-    topBarMenu->addChild(feedMoonsButton);
+    ZenGardenLayer::m_feedMoonsButton->setID("feed-moons");
+    ZenGardenLayer::m_feedMoonsButton->setPosition((windowSize.width / -2) + 144.5, (windowSize.height / 2) - 25);
+    topBarMenu->addChild(ZenGardenLayer::m_feedMoonsButton);
 
     ZenGardenLayer::m_moonsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
     ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
@@ -173,7 +173,7 @@ bool ZenGardenLayer::init()
     ZenGardenLayer::m_moonsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_moonsLabel);
 
-    auto feedDiamondsButton = CCMenuItemSpriteExtra::create(
+    ZenGardenLayer::m_feedDiamondsButton = CCMenuItemSpriteExtra::create(
         geode::EditorButtonSprite::createWithSpriteFrameName(
             "GJ_diamondsIcon_001.png",
             1.0f,
@@ -181,9 +181,9 @@ bool ZenGardenLayer::init()
             {}),
         this,
         menu_selector(ZenGardenLayer::onFeedDiamonds));
-    feedDiamondsButton->setID("feed-diamonds");
-    feedDiamondsButton->setPosition((windowSize.width / -2) + 184, (windowSize.height / 2) - 25);
-    topBarMenu->addChild(feedDiamondsButton);
+    ZenGardenLayer::m_feedDiamondsButton->setID("feed-diamonds");
+    ZenGardenLayer::m_feedDiamondsButton->setPosition((windowSize.width / -2) + 184, (windowSize.height / 2) - 25);
+    topBarMenu->addChild(ZenGardenLayer::m_feedDiamondsButton);
 
     // Move Mode toggle button
     auto moveModeButton = CCMenuItemSpriteExtra::create(
@@ -206,7 +206,7 @@ bool ZenGardenLayer::init()
 
     ZenGardenLayer::m_diamondsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_diamondsLabel->setID("diamond-count");
-    ZenGardenLayer::m_diamondsLabel->setPosition((windowSize.width / -2) + 179, (windowSize.height / 2) - 34);
+    ZenGardenLayer::m_diamondsLabel->setPosition((windowSize.width / -2) + 194, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_diamondsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_diamondsLabel);
 
@@ -717,12 +717,16 @@ void ZenGardenLayer::onSimplePlayerClicked(CCObject *sender)
         ZenGardenLayer::m_selectedItem = 0;
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
+            ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
         if (ZenGardenLayer::m_starsHoverSprite)
             ZenGardenLayer::m_starsHoverSprite->setVisible(false);
+            ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
         if (ZenGardenLayer::m_moonsHoverSprite)
             ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
+            ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+            ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
         return;
     }
 
@@ -2212,6 +2216,8 @@ void ZenGardenLayer::onFeedOrbs(CCObject *sender)
 {
     if (ZenGardenLayer::m_selectedItem != 1)
     {
+        ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(100, 100, 100));
+
         ZenGardenLayer::m_selectedItem = 1;
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(true);
@@ -2221,6 +2227,9 @@ void ZenGardenLayer::onFeedOrbs(CCObject *sender)
             ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    } else {
+        ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
     }
 }
 
@@ -2228,6 +2237,8 @@ void ZenGardenLayer::onFeedStars(CCObject *sender)
 {
     if (ZenGardenLayer::m_selectedItem != 2)
     {
+        ZenGardenLayer::m_feedStarsButton->setColor(ccc3(100, 100, 100));
+
         ZenGardenLayer::m_selectedItem = 2;
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
@@ -2237,6 +2248,9 @@ void ZenGardenLayer::onFeedStars(CCObject *sender)
             ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    } else {
+        ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_starsHoverSprite->setVisible(false);
     }
 }
 
@@ -2245,6 +2259,9 @@ void ZenGardenLayer::onFeedMoons(CCObject *sender)
     if (ZenGardenLayer::m_selectedItem != 3)
     {
         ZenGardenLayer::m_selectedItem = 3;
+
+        ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(100, 100, 100));
+
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
         if (ZenGardenLayer::m_starsHoverSprite)
@@ -2253,6 +2270,9 @@ void ZenGardenLayer::onFeedMoons(CCObject *sender)
             ZenGardenLayer::m_moonsHoverSprite->setVisible(true);
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
+    } else {
+        ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
     }
 }
 
@@ -2260,6 +2280,8 @@ void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
 {
     if (ZenGardenLayer::m_selectedItem != 4)
     {
+        ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(100, 100, 100));
+
         ZenGardenLayer::m_selectedItem = 4;
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
@@ -2269,6 +2291,9 @@ void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
             ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(true);
+    } else {
+        ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     }
 }
 
