@@ -66,6 +66,7 @@ bool ZenGardenLayer::init()
 
     auto exitMenu = CCMenu::create();
     exitMenu->setID("exit-menu");
+    exitMenu->setPosition(ccp(windowSize.width / 2 - 50, windowSize.height / 2));
 
     this->addChild(exitMenu);
 
@@ -74,7 +75,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onBack));
 
-    close->setPosition((windowSize.width / 2) - 32, (windowSize.height / 2) - 32);
+    close->setPosition((windowSize.width / 2), (windowSize.height / 2) - 32);
     close->setID("exit-zen-garden");
 
     exitMenu->addChild(close);
@@ -94,7 +95,7 @@ bool ZenGardenLayer::init()
 
     auto topBarBG = CCScale9Sprite::create("square02b_001.png");
     topBarBG->setContentSize({163, 40});
-    topBarBG->setPosition((windowSize.width / -2) + 99.5, (windowSize.height / 2) - 25);
+    topBarBG->setPosition((windowSize.width / -2) + 124.5, (windowSize.height / 2) - 25);
     topBarBG->setID("top-bar-bg");
     topBarBG->setColor({0, 36, 91});
     topBarMenu->addChild(topBarBG);
@@ -108,7 +109,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onFeedOrbs));
     feedOrbsButton->setID("feed-orbs");
-    feedOrbsButton->setPosition((windowSize.width / -2) + 40.5, (windowSize.height / 2) - 25);
+    feedOrbsButton->setPosition((windowSize.width / -2) + 65.5, (windowSize.height / 2) - 25);
     topBarMenu->addChild(feedOrbsButton);
 
     ZenGardenLayer::m_orbsHoverSprite = CCSprite::createWithSpriteFrameName("currencyOrbIcon_001.png");
@@ -119,7 +120,7 @@ bool ZenGardenLayer::init()
 
     auto orbCount = CCLabelBMFont::create("8", "bigFont.fnt");
     orbCount->setID("orb-count");
-    orbCount->setPosition((windowSize.width / -2) + 50.5, (windowSize.height / 2) - 34);
+    orbCount->setPosition((windowSize.width / -2) + 75.5, (windowSize.height / 2) - 34);
     orbCount->setRotation(90.0f);
     orbCount->setScale(0.5f);
     topBarMenu->addChild(orbCount);
@@ -133,7 +134,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onFeedStars));
     feedStarsButton->setID("feed-stars");
-    feedStarsButton->setPosition((windowSize.width / -2) + 80, (windowSize.height / 2) - 25);
+    feedStarsButton->setPosition((windowSize.width / -2) + 105, (windowSize.height / 2) - 25);
     topBarMenu->addChild(feedStarsButton);
 
     ZenGardenLayer::m_starsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_starsIcon_001.png");
@@ -144,7 +145,7 @@ bool ZenGardenLayer::init()
 
     ZenGardenLayer::m_starsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_starCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_starsLabel->setID("star-count");
-    ZenGardenLayer::m_starsLabel->setPosition((windowSize.width / -2) + 90, (windowSize.height / 2) - 34);
+    ZenGardenLayer::m_starsLabel->setPosition((windowSize.width / -2) + 115, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_starsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_starsLabel);
 
@@ -157,7 +158,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onFeedMoons));
     feedMoonsButton->setID("feed-moons");
-    feedMoonsButton->setPosition((windowSize.width / -2) + 119.5, (windowSize.height / 2) - 25);
+    feedMoonsButton->setPosition((windowSize.width / -2) + 144.5, (windowSize.height / 2) - 25);
     topBarMenu->addChild(feedMoonsButton);
 
     ZenGardenLayer::m_moonsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_moonsIcon_001.png");
@@ -168,7 +169,7 @@ bool ZenGardenLayer::init()
 
     ZenGardenLayer::m_moonsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_moonCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_moonsLabel->setID("moon-count");
-    ZenGardenLayer::m_moonsLabel->setPosition((windowSize.width / -2) + 129.5, (windowSize.height / 2) - 34);
+    ZenGardenLayer::m_moonsLabel->setPosition((windowSize.width / -2) + 154.5, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_moonsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_moonsLabel);
 
@@ -181,7 +182,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onFeedDiamonds));
     feedDiamondsButton->setID("feed-diamonds");
-    feedDiamondsButton->setPosition((windowSize.width / -2) + 159, (windowSize.height / 2) - 25);
+    feedDiamondsButton->setPosition((windowSize.width / -2) + 184, (windowSize.height / 2) - 25);
     topBarMenu->addChild(feedDiamondsButton);
 
     // Move Mode toggle button
@@ -194,7 +195,7 @@ bool ZenGardenLayer::init()
         this,
         menu_selector(ZenGardenLayer::onToggleMoveMode));
     moveModeButton->setID("move-mode-button");
-    moveModeButton->setPosition((windowSize.width / -2) + 205.5f, (windowSize.height / 2) - 25);
+    moveModeButton->setPosition((windowSize.width / -2) + 230.5f, (windowSize.height / 2) - 25);
     topBarMenu->addChild(moveModeButton);
 
     ZenGardenLayer::m_diamondsHoverSprite = CCSprite::createWithSpriteFrameName("GJ_diamondsIcon_001.png");
@@ -205,7 +206,7 @@ bool ZenGardenLayer::init()
 
     ZenGardenLayer::m_diamondsLabel = CCLabelBMFont::create(std::to_string(ZenGardenLayer::m_diamondCount).c_str(), "bigFont.fnt");
     ZenGardenLayer::m_diamondsLabel->setID("diamond-count");
-    ZenGardenLayer::m_diamondsLabel->setPosition((windowSize.width / -2) + 154, (windowSize.height / 2) - 34);
+    ZenGardenLayer::m_diamondsLabel->setPosition((windowSize.width / -2) + 179, (windowSize.height / 2) - 34);
     ZenGardenLayer::m_diamondsLabel->setScale(0.5f);
     topBarMenu->addChild(ZenGardenLayer::m_diamondsLabel);
 
@@ -429,7 +430,7 @@ bool ZenGardenLayer::init()
         menu_selector(ZenGardenLayer::onResetProgress));
     resetButton->setID("reset-progress-button");
     resetButtonMenu->addChild(resetButton);
-    resetButtonMenu->setPosition(ccp(55, 25));
+    resetButtonMenu->setPosition(ccp(80, 25));
     this->addChild(resetButtonMenu);
 
     return true;
