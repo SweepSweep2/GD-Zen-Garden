@@ -4,6 +4,11 @@
 
 using namespace geode::prelude;
 
+$on_mod(Loaded)
+{
+	GameStatsManager::sharedState()->setStat("29", Mod::get()->getSavedValue<int>("money", GameStatsManager::sharedState()->getStat("29")));
+}
+
 class $modify(ZenGardenMenuLayer, MenuLayer)
 {
 	bool init()
@@ -33,7 +38,7 @@ class $modify(ZenGardenMenuLayer, MenuLayer)
 
 	menu->updateLayout();
 
-	GameStatsManager::sharedState()->setStat("29", Mod::get()->getSavedValue<int>("money", GameStatsManager::sharedState()->getStat("29")));
+	Mod::get()->setSavedValue<int>("money", GameStatsManager::sharedState()->getStat("29"));
 
 	return true;
 	}

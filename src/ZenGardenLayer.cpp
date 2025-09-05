@@ -48,10 +48,20 @@ bool ZenGardenLayer::init()
     auto windowSize = CCDirector::sharedDirector()->getWinSize();
     int xPositions[8] = {-190, -140, -90, -40, 40, 90, 140, 190};
 
-    ZenGardenLayer::m_starCount = Mod::get()->getSavedValue<int>("stars");
-    ZenGardenLayer::m_moonCount = Mod::get()->getSavedValue<int>("moons");
-    ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds");
+    ZenGardenLayer::m_starCount = Mod::get()->getSavedValue<int>("stars", -1);
+    ZenGardenLayer::m_moonCount = Mod::get()->getSavedValue<int>("moons", -1);
+    ZenGardenLayer::m_diamondCount = Mod::get()->getSavedValue<int>("diamonds", -1);
     ZenGardenLayer::m_diamondShards = Mod::get()->getSavedValue<int>("money");
+
+    if (ZenGardenLayer::m_starCount < 0) {
+        ZenGardenLayer::m_starCount = 5;
+    }
+    if (ZenGardenLayer::m_moonCount < 0) {
+        ZenGardenLayer::m_moonCount = 5;
+    }
+    if (ZenGardenLayer::m_diamondCount < 0) {
+        ZenGardenLayer::m_diamondCount = 5;
+    }
 
     // Initialize maturity system variables (used for the currently selected player)
     ZenGardenLayer::m_maturityLevel = 0;
@@ -229,7 +239,7 @@ bool ZenGardenLayer::init()
     if (m_moveModeLabel)
     {
         m_moveModeLabel->setID("move-mode-label");
-        m_moveModeLabel->setPosition({windowSize.width / 2, windowSize.height - 20});
+        m_moveModeLabel->setPosition({windowSize.width / 2 + 20, windowSize.height - 20});
         m_moveModeLabel->setScale(0.7f);
         m_moveModeLabel->setVisible(false);
         m_moveModeLabel->setAlignment(kCCTextAlignmentCenter);

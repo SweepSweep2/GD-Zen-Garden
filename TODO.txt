@@ -4,6 +4,6 @@ TODO:
 (DONE) You will be able to buy new 3 icons every 24 hours ($1000 each) and you wont be able to see the color/type of the icon.
 (DONE) There will also be the ability to sell an icon for the following: 750 + (200 * maturity level) and the ability to move icons.
 
-
 LATER UPDATES:
 Add the ability to convert your PVZ Zen Garden to a GD Zen Garden and vice versa (i can do that one, i know the file formats)
+Interactive Tutorial
