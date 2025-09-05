@@ -31,5 +31,12 @@
 			"type": "bool",
 			"default": false
 		}
+	},
+	"links": {
+		"source": "https://github.com/SweepSweep2/GD-Zen-Garden"
+	},
+	"issues": {
+		"info": "If you find a bug or have a suggestion, please open an issue on GitHub.",
+		"url": "https://github.com/SweepSweep2/GD-Zen-Garden/issues"
 	}
 }
