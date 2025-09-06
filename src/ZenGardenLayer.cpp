@@ -2227,6 +2227,9 @@ void ZenGardenLayer::onFeedOrbs(CCObject *sender)
     if (ZenGardenLayer::m_selectedItem != 1)
     {
         ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(100, 100, 100));
+        ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
 
         ZenGardenLayer::m_selectedItem = 1;
         if (ZenGardenLayer::m_orbsHoverSprite)
@@ -2238,6 +2241,7 @@ void ZenGardenLayer::onFeedOrbs(CCObject *sender)
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     } else {
+        ZenGardenLayer::m_selectedItem = 0;
         ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
     }
@@ -2247,7 +2251,10 @@ void ZenGardenLayer::onFeedStars(CCObject *sender)
 {
     if (ZenGardenLayer::m_selectedItem != 2)
     {
+        ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_feedStarsButton->setColor(ccc3(100, 100, 100));
+        ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
 
         ZenGardenLayer::m_selectedItem = 2;
         if (ZenGardenLayer::m_orbsHoverSprite)
@@ -2259,6 +2266,7 @@ void ZenGardenLayer::onFeedStars(CCObject *sender)
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     } else {
+        ZenGardenLayer::m_selectedItem = 0;
         ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_starsHoverSprite->setVisible(false);
     }
@@ -2270,7 +2278,10 @@ void ZenGardenLayer::onFeedMoons(CCObject *sender)
     {
         ZenGardenLayer::m_selectedItem = 3;
 
+        ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(100, 100, 100));
+        ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
 
         if (ZenGardenLayer::m_orbsHoverSprite)
             ZenGardenLayer::m_orbsHoverSprite->setVisible(false);
@@ -2281,6 +2292,7 @@ void ZenGardenLayer::onFeedMoons(CCObject *sender)
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     } else {
+        ZenGardenLayer::m_selectedItem = 0;
         ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_moonsHoverSprite->setVisible(false);
     }
@@ -2290,6 +2302,9 @@ void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
 {
     if (ZenGardenLayer::m_selectedItem != 4)
     {
+        ZenGardenLayer::m_feedOrbsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedStarsButton->setColor(ccc3(255, 255, 255));
+        ZenGardenLayer::m_feedMoonsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(100, 100, 100));
 
         ZenGardenLayer::m_selectedItem = 4;
@@ -2302,6 +2317,7 @@ void ZenGardenLayer::onFeedDiamonds(CCObject *sender)
         if (ZenGardenLayer::m_diamondsHoverSprite)
             ZenGardenLayer::m_diamondsHoverSprite->setVisible(true);
     } else {
+        ZenGardenLayer::m_selectedItem = 0;
         ZenGardenLayer::m_feedDiamondsButton->setColor(ccc3(255, 255, 255));
         ZenGardenLayer::m_diamondsHoverSprite->setVisible(false);
     }
