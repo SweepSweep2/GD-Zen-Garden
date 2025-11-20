@@ -13,11 +13,11 @@
 	},
 	"id": "sweep.zen_garden",
 	"name": "Zen Garden",
-	"version": "v1.0.1",
+	"version": "v1.0.2",
 	"developers": [
 		"Sweep",
 		"ArcticWoof"
-],
+	],
 	"tags": [
 		"offline",
 		"content",
@@ -41,5 +41,3 @@
 		"url": "https://github.com/SweepSweep2/GD-Zen-Garden/issues"
 	}
 }
-
-
