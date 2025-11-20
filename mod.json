@@ -1,5 +1,5 @@
 {
-	"geode": "4.7.0",
+	"geode": "4.9.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -41,4 +41,5 @@
 		"url": "https://github.com/SweepSweep2/GD-Zen-Garden/issues"
 	}
 }
+
 
