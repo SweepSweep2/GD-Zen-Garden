@@ -21,7 +21,8 @@
 	"tags": [
 		"offline",
 		"content",
-		"interface"
+		"interface",
+		"cheat"
 	],
 	"description": "A mod that adds the PVZ Zen Garden.",
 	"settings": {
@@ -40,3 +41,4 @@
 		"url": "https://github.com/SweepSweep2/GD-Zen-Garden/issues"
 	}
 }
+
