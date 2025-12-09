@@ -6,4 +6,5 @@ FINISHED:
 
 LATER UPDATES:
 Add the ability to convert your PVZ Zen Garden to a GD Zen Garden and vice versa (i can do that one, i know the file formats)
+- be sure to use matjson instead of using setSavedValue as it is way more efficient and cleaner
 Interactive Tutorial

@@ -1,109 +1,112 @@
 #pragma once
-#include <Geode/Geode.hpp>
 #include <cocos2d.h>
+
+#include <Geode/Geode.hpp>
+
 #include "SimplePlayerInfo.hpp"
 
 using namespace geode::prelude;
 using namespace cocos2d;
 
-class ZenGardenLayer : public cocos2d::CCLayer
-{
-public:
-    static ZenGardenLayer *create();
-    bool init() override;
-    void onEnter() override;
-    void onBack(CCObject *sender);
-    void onShop(CCObject *sender);
-    void keyBackClicked() override;
-    void onFeedOrbs(CCObject *sender);
-    void onFeedStars(CCObject *sender);
-    void onFeedMoons(CCObject *sender);
-    void onFeedDiamonds(CCObject *sender);
-    void onSimplePlayerClicked(CCObject *sender);
-    void onToggleMoveMode(CCObject* sender);
-    void onSlotClicked(CCObject* sender);
-    void showBronzeCoinReward(int pos);
-    void showSilverCoinReward(int pos);
-    void showGoldCoinReward(int pos);
-    void flashShards();
-    void removeCoinSprite(CCNode* sender);
-    void tryEmitCoins(int pos);
-    void update(float dt) override;
-    
-    // Maturity system methods
-    void initializePlayerMaturity();
-    void updatePlayerMaturityVisuals();
-    void handlePlayerGrowth();
-    bool canFeedOrb();
-    void displayOrbCooldownMessage();
-    // Per-slot variants (operate on the slot index directly, independent of active selection)
-    void updatePlayerMaturityVisualsForPos(int pos);
-    void handlePlayerGrowthForPos(int pos);
-    bool canFeedOrbForPos(int pos);
-    void displayOrbCooldownMessageForPos(int pos);
-    SimplePlayer* getPlayerNodeAtPos(int pos);
-    // Show/remove requirement overlays for all players
-    void displayRequirementSprite();
-    void hideRequirementSprite();
-    
-    // Reset progress functionality
-    void onResetProgress(CCObject* sender);
-    void confirmResetProgress();
-    
-    // Cheat functionality
-    void cheat();
-    void clearAllFeedCooldowns();
-    void keyDown(enumKeyCodes key) override;
+class ZenGardenLayer : public cocos2d::CCLayer {
+     public:
+      static ZenGardenLayer* create();
+      bool init() override;
+      void onEnter() override;
+      void onBack(CCObject* sender);
+      void onShop(CCObject* sender);
+      void keyBackClicked() override;
+      void onFeedOrbs(CCObject* sender);
+      void onFeedStars(CCObject* sender);
+      void onFeedMoons(CCObject* sender);
+      void onFeedDiamonds(CCObject* sender);
+      void onSimplePlayerClicked(CCObject* sender);
+      void onToggleMoveMode(CCObject* sender);
+      void onSlotClicked(CCObject* sender);
+      void showBronzeCoinReward(int pos);
+      void showSilverCoinReward(int pos);
+      void showGoldCoinReward(int pos);
+      void flashShards();
+      void removeCoinSprite(CCNode* sender);
+      void tryEmitCoins(int pos);
+      void update(float dt) override;
 
-    // SimplePlayer management
-    static bool addRandomSimplePlayer();
-    static CCArray* getOccupiedPositions();
-    void reloadGardenFromSaves();
-    void updateSlotRequirementUI(int pos);
-    void sellPlayerAtPos(int pos);
-    bool isSlotOccupied(int pos);
-    void movePlayerTo(int fromPos, int toPos);
+      // Maturity system methods
+      void initializePlayerMaturity();
+      void updatePlayerMaturityVisuals();
+      void handlePlayerGrowth();
+      bool canFeedOrb();
+      void displayOrbCooldownMessage();
+      // Per-slot variants (operate on the slot index directly, independent of active selection)
+      void updatePlayerMaturityVisualsForPos(int pos);
+      void handlePlayerGrowthForPos(int pos);
+      bool canFeedOrbForPos(int pos);
+      void displayOrbCooldownMessageForPos(int pos);
+      SimplePlayer* getPlayerNodeAtPos(int pos);
+      // Show/remove requirement overlays for all players
+      void displayRequirementSprite();
+      void hideRequirementSprite();
 
-    // Move selection highlight helpers
-    void startMoveSelectionFlash(int pos);
-    void stopMoveSelectionFlash();
-    void applyYellowColor(CCNode* node);
-    void applyOriginalColors(CCNode* node);
-    void refreshSlotsMenuInteractable();
+      // Reset progress functionality
+      void onResetProgress(CCObject* sender);
+      void confirmResetProgress();
 
-    // Active player tracking (slot index 0-7), -1 when none
-    int m_activePos = -1;
+      // Cheat functionality
+      void cheat();
+      void clearAllFeedCooldowns();
+      void keyDown(enumKeyCodes key) override;
 
-    int m_selectedItem = 0;
-    static int m_starCount;
-    static int m_moonCount;
-    static int m_diamondCount;
-    static int m_diamondShards;
-    CCSprite *m_orbsHoverSprite;
-    CCSprite *m_starsHoverSprite;
-    CCSprite *m_moonsHoverSprite;
-    CCSprite *m_diamondsHoverSprite;
-    static CCLabelBMFont *m_starsLabel;
-    static CCLabelBMFont *m_moonsLabel;
-    static CCLabelBMFont *m_diamondsLabel;
-    static CCLabelBMFont *m_diamondShardsLabel;
-    CCMenuItemSpriteExtra *m_feedOrbsButton;
-    CCMenuItemSpriteExtra *m_feedStarsButton;
-    CCMenuItemSpriteExtra *m_feedMoonsButton;
-    CCMenuItemSpriteExtra *m_feedDiamondsButton;
-    CCSprite *m_diamondCurrencyIcon;
-    SimplePlayer *m_simplePlayer;
-    // Move Mode state
-    bool m_moveMode = false;
-    int m_moveSourcePos = -1;
-    int m_moveFlashPos = -1; // currently flashing selection pos, -1 if none
-    CCLabelBMFont* m_moveModeLabel = nullptr;
-    
-    // Maturity system variables
-    int m_maturityLevel = 0; // 0-5, with 5 being fully mature
-    int m_orbsFeeded = 0; // Track orbs fed to the player
-    int64_t m_lastOrbFeedTime = 0; // When the player was last fed an orb (stored as system time in seconds)
-    // Legacy single references (kept for compatibility but unused by per-slot overlays)
-    CCSprite *m_requirementSprite = nullptr;
-    CCLabelBMFont *m_requirementLabel = nullptr;
+      // SimplePlayer management
+      static bool addRandomSimplePlayer();
+      static CCArray* getOccupiedPositions();
+      void reloadGardenFromSaves();
+      void updateSlotRequirementUI(int pos);
+      void sellPlayerAtPos(int pos);
+      bool isSlotOccupied(int pos);
+      void movePlayerTo(int fromPos, int toPos);
+
+      // Move selection highlight helpers
+      void startMoveSelectionFlash(int pos);
+      void stopMoveSelectionFlash();
+      void applyYellowColor(CCNode* node);
+      void applyOriginalColors(CCNode* node);
+      void refreshSlotsMenuInteractable();
+
+      // Active player tracking (slot index 0-7), -1 when none
+      int m_activePos = -1;
+
+      int m_selectedItem = 0;
+      static int m_starCount;
+      static int m_moonCount;
+      static int m_diamondCount;
+      static int m_diamondShards;
+      CCSprite* m_orbsHoverSprite;
+      CCSprite* m_starsHoverSprite;
+      CCSprite* m_moonsHoverSprite;
+      CCSprite* m_diamondsHoverSprite;
+      static CCLabelBMFont* m_starsLabel;
+      static CCLabelBMFont* m_moonsLabel;
+      static CCLabelBMFont* m_diamondsLabel;
+      static CCLabelBMFont* m_diamondShardsLabel;
+      CCMenuItemSpriteExtra* m_feedOrbsButton;
+      CCMenuItemSpriteExtra* m_feedStarsButton;
+      CCMenuItemSpriteExtra* m_feedMoonsButton;
+      CCMenuItemSpriteExtra* m_feedDiamondsButton;
+      CCMenuItemSpriteExtra* m_moveModeButton;
+      CCSprite* m_diamondCurrencyIcon;
+      SimplePlayer* m_simplePlayer;
+
+      // Move Mode state
+      bool m_moveMode = false;
+      int m_moveSourcePos = -1;
+      int m_moveFlashPos = -1;  // currently flashing selection pos, -1 if none
+      CCLabelBMFont* m_moveModeLabel = nullptr;
+
+      // Maturity system variables
+      int m_maturityLevel = 0;        // 0-5, with 5 being fully mature
+      int m_orbsFeeded = 0;           // Track orbs fed to the player
+      int64_t m_lastOrbFeedTime = 0;  // When the player was last fed an orb (stored as system time in seconds)
+      // Legacy single references (kept for compatibility but unused by per-slot overlays)
+      CCSprite* m_requirementSprite = nullptr;
+      CCLabelBMFont* m_requirementLabel = nullptr;
 };

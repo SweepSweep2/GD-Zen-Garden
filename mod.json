@@ -1,5 +1,5 @@
 {
-	"geode": "4.9.0",
+	"geode": "4.10.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -13,7 +13,7 @@
 	},
 	"id": "sweep.zen_garden",
 	"name": "Zen Garden",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developers": [
 		"Sweep",
 		"ArcticWoof"
