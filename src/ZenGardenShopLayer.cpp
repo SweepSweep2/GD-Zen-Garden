@@ -500,6 +500,9 @@ bool ZenGardenShopLayer::init() {
 
       GameManager::sharedState()->fadeInMusic("shop.mp3");
 
+      this->setKeyboardEnabled(true);
+      this->setKeypadEnabled(true);
+
       return true;
 }
 
