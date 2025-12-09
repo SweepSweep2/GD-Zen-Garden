@@ -1,5 +1,5 @@
 {
-	"geode": "4.7.0",
+	"geode": "4.9.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -13,15 +13,16 @@
 	},
 	"id": "sweep.zen_garden",
 	"name": "Zen Garden",
-	"version": "v1.0.0",
+	"version": "v1.0.2",
 	"developers": [
 		"Sweep",
 		"ArcticWoof"
-],
+	],
 	"tags": [
 		"offline",
 		"content",
-		"interface"
+		"interface",
+		"cheat"
 	],
 	"description": "A mod that adds the PVZ Zen Garden.",
 	"settings": {
