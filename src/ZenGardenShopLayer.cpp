@@ -506,6 +506,10 @@ bool ZenGardenShopLayer::init() {
       return true;
 }
 
+void ZenGardenShopLayer::keyBackClicked() {
+      this->onBack(nullptr);
+}
+
 void ZenGardenShopLayer::updateIconsLabel(float dt) {
       // Get the local time
       std::time_t currentTime = std::time(nullptr);

@@ -12,6 +12,7 @@ class ZenGardenShopLayer : public cocos2d::CCLayer {
      public:
       static ZenGardenShopLayer* create();
       bool init() override;
+      void keyBackClicked() override;
       void onBack(CCObject* sender);
       void onBuyStars(CCObject* sender);
       void onBuyMoons(CCObject* sender);
